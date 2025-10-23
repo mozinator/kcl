@@ -1,0 +1,443 @@
+{
+  "kind": "Program",
+  "body": [
+    {
+      "kind": "Assign",
+      "name": "radius",
+      "expr": {
+        "kind": "BinaryOp",
+        "op": "*",
+        "left": {
+          "kind": "Var",
+          "name": "PI"
+        },
+        "right": {
+          "kind": "Number",
+          "value": 15
+        }
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "diameter",
+      "expr": {
+        "kind": "BinaryOp",
+        "op": "*",
+        "left": {
+          "kind": "Var",
+          "name": "radius"
+        },
+        "right": {
+          "kind": "Number",
+          "value": 2
+        }
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "area",
+      "expr": {
+        "kind": "BinaryOp",
+        "op": "*",
+        "left": {
+          "kind": "Var",
+          "name": "PI"
+        },
+        "right": {
+          "kind": "BinaryOp",
+          "op": "^",
+          "left": {
+            "kind": "Var",
+            "name": "radius"
+          },
+          "right": {
+            "kind": "Number",
+            "value": 2
+          }
+        }
+      }
+    },
+    {
+      "kind": "Let",
+      "name": "legacyVar",
+      "expr": {
+        "kind": "Number",
+        "value": 100
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "width",
+      "expr": {
+        "kind": "Number",
+        "value": 50
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "height",
+      "expr": {
+        "kind": "Number",
+        "value": 75
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "depth",
+      "expr": {
+        "kind": "Number",
+        "value": 30
+      }
+    },
+    {
+      "kind": "FnDef",
+      "name": "makeBox",
+      "params": [
+        {
+          "name": "w",
+          "unlabeled": false,
+          "optional": false
+        },
+        {
+          "name": "h",
+          "unlabeled": false,
+          "optional": false
+        },
+        {
+          "name": "d",
+          "unlabeled": false,
+          "optional": false
+        }
+      ],
+      "body": [
+        {
+          "kind": "ExprStmt",
+          "expr": {
+            "kind": "Call",
+            "callee": "box",
+            "args": {
+              "$0": {
+                "kind": "Var",
+                "name": "w"
+              },
+              "$1": {
+                "kind": "Var",
+                "name": "h"
+              },
+              "$2": {
+                "kind": "Var",
+                "name": "d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "kind": "Assign",
+      "name": "baseBox",
+      "expr": {
+        "kind": "Call",
+        "callee": "box",
+        "args": {
+          "width": {
+            "kind": "Var",
+            "name": "width"
+          },
+          "height": {
+            "kind": "Var",
+            "name": "height"
+          },
+          "depth": {
+            "kind": "Var",
+            "name": "depth"
+          }
+        }
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "smallBox",
+      "expr": {
+        "kind": "Call",
+        "callee": "makeBox",
+        "args": {
+          "$0": {
+            "kind": "Number",
+            "value": 10
+          },
+          "$1": {
+            "kind": "Number",
+            "value": 15
+          },
+          "$2": {
+            "kind": "Number",
+            "value": 20
+          }
+        }
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "translated",
+      "expr": {
+        "kind": "Pipe",
+        "left": {
+          "kind": "Var",
+          "name": "baseBox"
+        },
+        "right": {
+          "kind": "Call",
+          "callee": "translate",
+          "args": {
+            "x": {
+              "kind": "Number",
+              "value": 25
+            },
+            "y": {
+              "kind": "Number",
+              "value": 0
+            },
+            "z": {
+              "kind": "Number",
+              "value": 10
+            }
+          }
+        }
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "rotated",
+      "expr": {
+        "kind": "Pipe",
+        "left": {
+          "kind": "Var",
+          "name": "translated"
+        },
+        "right": {
+          "kind": "Call",
+          "callee": "rotate",
+          "args": {
+            "angle": {
+              "kind": "Number",
+              "value": 45,
+              "unit": "deg"
+            },
+            "axis": {
+              "kind": "Array",
+              "elements": [
+                {
+                  "kind": "Number",
+                  "value": 0
+                },
+                {
+                  "kind": "Number",
+                  "value": 0
+                },
+                {
+                  "kind": "Number",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "scaled",
+      "expr": {
+        "kind": "Pipe",
+        "left": {
+          "kind": "Var",
+          "name": "rotated"
+        },
+        "right": {
+          "kind": "Call",
+          "callee": "scale",
+          "args": {
+            "factor": {
+              "kind": "Number",
+              "value": 1.5
+            }
+          }
+        }
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "combined",
+      "expr": {
+        "kind": "Call",
+        "callee": "fuse",
+        "args": {
+          "a": {
+            "kind": "Var",
+            "name": "baseBox"
+          },
+          "b": {
+            "kind": "Var",
+            "name": "smallBox"
+          }
+        }
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "hollowed",
+      "expr": {
+        "kind": "Call",
+        "callee": "subtract",
+        "args": {
+          "base": {
+            "kind": "Var",
+            "name": "combined"
+          },
+          "tool": {
+            "kind": "Var",
+            "name": "scaled"
+          }
+        }
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "size",
+      "expr": {
+        "kind": "If",
+        "condition": {
+          "kind": "BinaryOp",
+          "op": ">",
+          "left": {
+            "kind": "Var",
+            "name": "width"
+          },
+          "right": {
+            "kind": "Number",
+            "value": 50
+          }
+        },
+        "thenBranch": {
+          "kind": "Number",
+          "value": 100
+        },
+        "elseIfBranches": [],
+        "elseBranch": {
+          "kind": "Number",
+          "value": 50
+        }
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "orientation",
+      "expr": {
+        "kind": "If",
+        "condition": {
+          "kind": "BinaryOp",
+          "op": ">",
+          "left": {
+            "kind": "Var",
+            "name": "size"
+          },
+          "right": {
+            "kind": "Number",
+            "value": 75
+          }
+        },
+        "thenBranch": {
+          "kind": "Number",
+          "value": 90,
+          "unit": "deg"
+        },
+        "elseIfBranches": [],
+        "elseBranch": {
+          "kind": "Number",
+          "value": 0,
+          "unit": "deg"
+        }
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "point3d",
+      "expr": {
+        "kind": "Array",
+        "elements": [
+          {
+            "kind": "Number",
+            "value": 10
+          },
+          {
+            "kind": "Number",
+            "value": 20
+          },
+          {
+            "kind": "Number",
+            "value": 30
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "sequence",
+      "expr": {
+        "kind": "Range",
+        "start": {
+          "kind": "Number",
+          "value": 1
+        },
+        "end": {
+          "kind": "Number",
+          "value": 10
+        },
+        "inclusive": true
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "colors",
+      "expr": {
+        "kind": "Array",
+        "elements": [
+          {
+            "kind": "String",
+            "value": "red"
+          },
+          {
+            "kind": "String",
+            "value": "green"
+          },
+          {
+            "kind": "String",
+            "value": "blue"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Assign",
+      "name": "final",
+      "expr": {
+        "kind": "Pipe",
+        "left": {
+          "kind": "Var",
+          "name": "hollowed"
+        },
+        "right": {
+          "kind": "Call",
+          "callee": "render",
+          "args": {
+            "format": {
+              "kind": "String",
+              "value": "stl"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

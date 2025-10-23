@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KCL - formatting-showcase.kcl</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', 'Consolas', monospace;
+      font-size: 14px;
+      line-height: 1.25;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #1e1e1e;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .header {
+      background: #2d2d30;
+      padding: 12px 20px;
+      border-bottom: 1px solid #3e3e42;
+    }
+
+    .header h1 {
+      font-size: 15px;
+      font-weight: 500;
+      color: #cccccc;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: -0.5px;
+    }
+
+    .code-container {
+      padding: 20px;
+      overflow-x: auto;
+    }
+
+    .code {
+      font-family: inherit;
+      white-space: pre;
+    }
+
+    /* Syntax highlighting - Vibrant palette */
+    .tok-keyword { color: #ff79c6; font-weight: 600; }  /* Bright pink */
+    .tok-function { color: #50fa7b; }                    /* Bright green */
+    .tok-stdlib { font-weight: 700; }
+    .tok-number { color: #bd93f9; }                      /* Bright purple */
+    .tok-string { color: #f1fa8c; }                      /* Bright yellow */
+    .tok-variable { color: #8be9fd; }                    /* Bright cyan */
+    .tok-constant { color: #ffb86c; font-weight: 700; }  /* Bright orange */
+    .tok-operator { color: #f8f8f2; }                    /* Light gray */
+    .tok-comment { color: #6272a4; font-style: italic; } /* Blue-gray */
+
+    /* Deprecated keyword warning - visible squiggly line */
+    .tok-deprecated {
+      position: relative;
+      cursor: help;
+      background: linear-gradient(to bottom, transparent 85%, #ff9800 85%, #ff9800 87%, transparent 87%);
+      background-size: 4px 100%;
+      background-repeat: repeat-x;
+      background-position: 0 bottom;
+    }
+
+    .tok-deprecated::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 2px;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 3" preserveAspectRatio="none"><path d="M0,3 Q1.5,0 3,1.5 T6,3" stroke="%23ff9800" stroke-width="0.5" fill="none"/></svg>');
+      background-repeat: repeat-x;
+      background-size: 6px 3px;
+      pointer-events: none;
+    }
+
+    /* Line numbers */
+    .line {
+      display: block;
+      position: relative;
+      padding-left: 60px;
+    }
+
+    .line::before {
+      content: attr(data-line);
+      position: absolute;
+      left: 0;
+      width: 40px;
+      text-align: right;
+      color: #858585;
+      user-select: none;
+    }
+
+    /* Hover effects */
+    .tok-function:hover,
+    .tok-variable:hover,
+    .tok-constant:hover {
+      text-decoration: underline;
+      cursor: help;
+    }
+
+    /* Footer */
+    .footer {
+      background: #2d2d30;
+      padding: 12px 20px;
+      border-top: 1px solid #3e3e42;
+      text-align: center;
+      font-size: 11px;
+      color: #858585;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .legend {
+      margin-top: 8px;
+      font-size: 11px;
+    }
+
+    .legend span {
+      margin: 0 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>KCL - formatting-showcase.kcl</h1>
+    </div>
+    <div class="code-container">
+      <div class="code"><div class="line" data-line="1"><span class="tok-comment">// KCL Syntax Showcase - Demonstrating language features</span></div><div class="line" data-line="2">&nbsp;</div><div class="line" data-line="3"><span class="tok-comment">// Constants and math</span></div><div class="line" data-line="4"><span class="tok-variable">radius</span> <span class="tok-operator">=</span> <span class="tok-constant">PI</span> <span class="tok-operator">*</span> <span class="tok-number">15</span></div><div class="line" data-line="5"><span class="tok-variable">diameter</span> <span class="tok-operator">=</span> <span class="tok-variable">radius</span> <span class="tok-operator">*</span> <span class="tok-number">2</span></div><div class="line" data-line="6"><span class="tok-variable">area</span> <span class="tok-operator">=</span> <span class="tok-constant">PI</span> <span class="tok-operator">*</span> <span class="tok-variable">radius</span> <span class="tok-operator">^</span> <span class="tok-number">2</span></div><div class="line" data-line="7">&nbsp;</div><div class="line" data-line="8"><span class="tok-comment">// One deprecated &#039;let&#039; statement (should show warning squiggly)</span></div><div class="line" data-line="9"><span class="tok-keyword tok-deprecated">let</span> <span class="tok-variable">legacyVar</span> <span class="tok-operator">=</span> <span class="tok-number">100</span></div><div class="line" data-line="10">&nbsp;</div><div class="line" data-line="11"><span class="tok-comment">// Modern syntax - direct assignment</span></div><div class="line" data-line="12"><span class="tok-variable">width</span> <span class="tok-operator">=</span> <span class="tok-number">50</span></div><div class="line" data-line="13"><span class="tok-variable">height</span> <span class="tok-operator">=</span> <span class="tok-number">75</span></div><div class="line" data-line="14"><span class="tok-variable">depth</span> <span class="tok-operator">=</span> <span class="tok-number">30</span></div><div class="line" data-line="15">&nbsp;</div><div class="line" data-line="16"><span class="tok-comment">// Function definition</span></div><div class="line" data-line="17"><span class="tok-keyword">fn</span> <span class="tok-variable">makeBox</span><span class="tok-operator">(</span><span class="tok-variable">w</span><span class="tok-operator">,</span> <span class="tok-variable">h</span><span class="tok-operator">,</span> <span class="tok-variable">d</span><span class="tok-operator">)</span> <span class="tok-operator">{</span></div><div class="line" data-line="18">  <span class="tok-function tok-stdlib">box</span><span class="tok-operator">(</span><span class="tok-variable">w</span><span class="tok-operator">,</span> <span class="tok-variable">h</span><span class="tok-operator">,</span> <span class="tok-variable">d</span><span class="tok-operator">)</span></div><div class="line" data-line="19"><span class="tok-operator">}</span></div><div class="line" data-line="20">&nbsp;</div><div class="line" data-line="21"><span class="tok-comment">// Function calls with named arguments</span></div><div class="line" data-line="22"><span class="tok-variable">baseBox</span> <span class="tok-operator">=</span> <span class="tok-function tok-stdlib">box</span><span class="tok-operator">(</span><span class="tok-variable">width</span> <span class="tok-operator">=</span> <span class="tok-variable">width</span><span class="tok-operator">,</span> <span class="tok-variable">height</span> <span class="tok-operator">=</span> <span class="tok-variable">height</span><span class="tok-operator">,</span> <span class="tok-variable">depth</span> <span class="tok-operator">=</span> <span class="tok-variable">depth</span><span class="tok-operator">)</span></div><div class="line" data-line="23"><span class="tok-variable">smallBox</span> <span class="tok-operator">=</span> <span class="tok-variable">makeBox</span><span class="tok-operator">(</span><span class="tok-number">10</span><span class="tok-operator">,</span> <span class="tok-number">15</span><span class="tok-operator">,</span> <span class="tok-number">20</span><span class="tok-operator">)</span></div><div class="line" data-line="24">&nbsp;</div><div class="line" data-line="25"><span class="tok-comment">// Pipe expressions for transformations</span></div><div class="line" data-line="26"><span class="tok-variable">translated</span> <span class="tok-operator">=</span> <span class="tok-variable">baseBox</span> <span class="tok-operator">|&gt;</span> <span class="tok-function tok-stdlib">translate</span><span class="tok-operator">(</span><span class="tok-variable">x</span> <span class="tok-operator">=</span> <span class="tok-number">25</span><span class="tok-operator">,</span> <span class="tok-variable">y</span> <span class="tok-operator">=</span> <span class="tok-number">0</span><span class="tok-operator">,</span> <span class="tok-variable">z</span> <span class="tok-operator">=</span> <span class="tok-number">10</span><span class="tok-operator">)</span></div><div class="line" data-line="27"><span class="tok-variable">rotated</span> <span class="tok-operator">=</span> <span class="tok-variable">translated</span> <span class="tok-operator">|&gt;</span> <span class="tok-function tok-stdlib">rotate</span><span class="tok-operator">(</span><span class="tok-variable">angle</span> <span class="tok-operator">=</span> <span class="tok-number">45deg</span><span class="tok-operator">,</span> <span class="tok-variable">axis</span> <span class="tok-operator">=</span> <span class="tok-operator">[</span><span class="tok-number">0</span><span class="tok-operator">,</span> <span class="tok-number">0</span><span class="tok-operator">,</span> <span class="tok-number">1</span><span class="tok-operator">]</span><span class="tok-operator">)</span></div><div class="line" data-line="28"><span class="tok-variable">scaled</span> <span class="tok-operator">=</span> <span class="tok-variable">rotated</span> <span class="tok-operator">|&gt;</span> <span class="tok-function tok-stdlib">scale</span><span class="tok-operator">(</span><span class="tok-variable">factor</span> <span class="tok-operator">=</span> <span class="tok-number">1.5</span><span class="tok-operator">)</span></div><div class="line" data-line="29">&nbsp;</div><div class="line" data-line="30"><span class="tok-comment">// Boolean operations</span></div><div class="line" data-line="31"><span class="tok-variable">combined</span> <span class="tok-operator">=</span> <span class="tok-function tok-stdlib">fuse</span><span class="tok-operator">(</span><span class="tok-variable">a</span> <span class="tok-operator">=</span> <span class="tok-variable">baseBox</span><span class="tok-operator">,</span> <span class="tok-variable">b</span> <span class="tok-operator">=</span> <span class="tok-variable">smallBox</span><span class="tok-operator">)</span></div><div class="line" data-line="32"><span class="tok-variable">hollowed</span> <span class="tok-operator">=</span> <span class="tok-function tok-stdlib">subtract</span><span class="tok-operator">(</span><span class="tok-variable">base</span> <span class="tok-operator">=</span> <span class="tok-variable">combined</span><span class="tok-operator">,</span> <span class="tok-variable">tool</span> <span class="tok-operator">=</span> <span class="tok-variable">scaled</span><span class="tok-operator">)</span></div><div class="line" data-line="33">&nbsp;</div><div class="line" data-line="34"><span class="tok-comment">// Conditional expressions</span></div><div class="line" data-line="35"><span class="tok-variable">size</span> <span class="tok-operator">=</span> <span class="tok-keyword">if</span> <span class="tok-variable">width</span> <span class="tok-operator">&gt;</span> <span class="tok-number">50</span> <span class="tok-operator">{</span> <span class="tok-number">100</span> <span class="tok-operator">}</span> <span class="tok-keyword">else</span> <span class="tok-operator">{</span> <span class="tok-number">50</span> <span class="tok-operator">}</span></div><div class="line" data-line="36"><span class="tok-variable">orientation</span> <span class="tok-operator">=</span> <span class="tok-keyword">if</span> <span class="tok-variable">size</span> <span class="tok-operator">&gt;</span> <span class="tok-number">75</span> <span class="tok-operator">{</span> <span class="tok-number">90deg</span> <span class="tok-operator">}</span> <span class="tok-keyword">else</span> <span class="tok-operator">{</span> <span class="tok-number">0deg</span> <span class="tok-operator">}</span></div><div class="line" data-line="37">&nbsp;</div><div class="line" data-line="38"><span class="tok-comment">// Arrays and ranges</span></div><div class="line" data-line="39"><span class="tok-variable">point3d</span> <span class="tok-operator">=</span> <span class="tok-operator">[</span><span class="tok-number">10</span><span class="tok-operator">,</span> <span class="tok-number">20</span><span class="tok-operator">,</span> <span class="tok-number">30</span><span class="tok-operator">]</span></div><div class="line" data-line="40"><span class="tok-variable">sequence</span> <span class="tok-operator">=</span> <span class="tok-operator">[</span><span class="tok-number">1</span><span class="tok-operator">..</span><span class="tok-number">10</span><span class="tok-operator">]</span></div><div class="line" data-line="41"><span class="tok-variable">colors</span> <span class="tok-operator">=</span> <span class="tok-operator">[</span><span class="tok-string">&quot;red&quot;</span><span class="tok-operator">,</span> <span class="tok-string">&quot;green&quot;</span><span class="tok-operator">,</span> <span class="tok-string">&quot;blue&quot;</span><span class="tok-operator">]</span></div><div class="line" data-line="42">&nbsp;</div><div class="line" data-line="43"><span class="tok-comment">// Render final shape</span></div><div class="line" data-line="44"><span class="tok-variable">final</span> <span class="tok-operator">=</span> <span class="tok-variable">hollowed</span> <span class="tok-operator">|&gt;</span> <span class="tok-function tok-stdlib">render</span><span class="tok-operator">(</span><span class="tok-variable">format</span> <span class="tok-operator">=</span> <span class="tok-string">&quot;stl&quot;</span><span class="tok-operator">)</span></div><div class="line" data-line="45">&nbsp;</div></div>
+    </div>
+    <div class="footer">
+      Generated by <strong>KCL Language Server v0.3.1</strong> • Powered by Bun + TypeScript
+      <div class="legend">
+        <span class="tok-keyword">keyword</span>
+        <span class="tok-keyword tok-deprecated">deprecated</span>
+        <span class="tok-function tok-stdlib">function</span>
+        <span class="tok-number">number</span>
+        <span class="tok-string">string</span>
+        <span class="tok-variable">variable</span>
+        <span class="tok-constant">CONSTANT</span>
+        <span class="tok-operator">operator</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

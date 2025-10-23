@@ -1,0 +1,44 @@
+// KCL Syntax Showcase - Demonstrating language features
+
+// Constants and math
+radius = PI * 15
+diameter = radius * 2
+area = PI * radius ^ 2
+
+// One deprecated 'let' statement (should show warning squiggly)
+let legacyVar = 100
+
+// Modern syntax - direct assignment
+width = 50
+height = 75
+depth = 30
+
+// Function definition
+fn makeBox(w, h, d) {
+  box(w, h, d)
+}
+
+// Function calls with named arguments
+baseBox = box(width = width, height = height, depth = depth)
+smallBox = makeBox(10, 15, 20)
+
+// Pipe expressions for transformations
+translated = baseBox |> translate(x = 25, y = 0, z = 10)
+rotated = translated |> rotate(angle = 45deg, axis = [0, 0, 1])
+scaled = rotated |> scale(factor = 1.5)
+
+// Boolean operations
+combined = fuse(a = baseBox, b = smallBox)
+hollowed = subtract(base = combined, tool = scaled)
+
+// Conditional expressions
+size = if width > 50 { 100 } else { 50 }
+orientation = if size > 75 { 90deg } else { 0deg }
+
+// Arrays and ranges
+point3d = [10, 20, 30]
+sequence = [1..10]
+colors = ["red", "green", "blue"]
+
+// Render final shape
+final = hollowed |> render(format = "stl")
