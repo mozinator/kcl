@@ -87,14 +87,29 @@ function formatDocumentPreservingComments(
 
     // We hit non-blank content
     if (lineType === 'comment') {
-      // Before outputting comment, handle any pending blanks
-      if (hasOutputAnyContent && consecutiveBlanks > 0) {
-        // For code-to-comment transitions: preserve up to 2 blank lines
-        // 1-2 blanks → preserve as-is
-        // 3+ blanks → normalize to 2
-        pendingBlanks = Math.min(consecutiveBlanks, 2)
+      // Before outputting comment, peek ahead to see if formatter has blanks before next code
+      // These blanks represent the formatter's desired spacing after the previous code statement
+      let formatterBlanksBeforeNextCode = 0
+      let tempIdx = formattedIdx
+      while (tempIdx < formattedLines.length && formattedLines[tempIdx].trim() === '') {
+        formatterBlanksBeforeNextCode++
+        tempIdx++
+      }
+
+      // Handle pending blanks before comment
+      if (hasOutputAnyContent && (consecutiveBlanks > 0 || formatterBlanksBeforeNextCode > 0)) {
+        // Take max of user blanks and formatter blanks - they both refer to spacing before comment
+        // (formatter blanks are "after previous code", which is same as "before comment")
+        const effectiveBlanks = Math.max(consecutiveBlanks, formatterBlanksBeforeNextCode)
+        pendingBlanks = Math.min(effectiveBlanks, 2)
+
         for (let b = 0; b < pendingBlanks; b++) {
           result.push('')
+        }
+
+        // Consume formatter blanks so we don't output them again after the comment
+        if (formatterBlanksBeforeNextCode > 0) {
+          formattedIdx = tempIdx
         }
       }
       consecutiveBlanks = 0
@@ -113,8 +128,8 @@ function formatDocumentPreservingComments(
 
       // Decide how many blanks to output
       if (hasOutputAnyContent) {
-        // For code-to-code: normalize all blanks to max 1
-        const normalizedUserBlanks = consecutiveBlanks > 0 ? 1 : 0
+        // For code-to-code: preserve intentional blank lines (up to 2 max)
+        const normalizedUserBlanks = Math.min(consecutiveBlanks, 2)
 
         // Normalize formatter blanks: 1+ → 1 (formatter usually wants 1)
         const normalizedFormatterBlanks = formatterBlanks > 0 ? 1 : 0
@@ -178,11 +193,6 @@ function formatProgram(program: Program): string {
     const stmt = program.body[i]
     const formatted = formatStatement(stmt, 0)
     lines.push(formatted)
-
-    // Add blank line after function definitions (except at end)
-    if (stmt.kind === "FnDef" && i < program.body.length - 1) {
-      lines.push("")
-    }
 
     // Add blank line between different statement types
     if (i < program.body.length - 1) {

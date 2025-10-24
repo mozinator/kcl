@@ -388,8 +388,8 @@ describe("Formatting: Smart Blank Line Preservation", () => {
 
     if (formatted.length > 0) {
       const output = formatted[0].newText.trim()
-      // Should preserve double blank (2 newlines = 1 blank line shown)
-      expect(output).toBe("x = 1\n\ny = 2")
+      // Should preserve double blank (2 blank lines preserved as-is)
+      expect(output).toBe("x = 1\n\n\ny = 2")
     }
   })
 
@@ -402,11 +402,11 @@ describe("Formatting: Smart Blank Line Preservation", () => {
 
     if (formatted.length > 0) {
       const output = formatted[0].newText.trim()
-      // 5 blanks should be normalized to 2
-      expect(output).toBe("x = 1\n\ny = 2")
+      // 4 blank lines should be normalized to 2
+      expect(output).toBe("x = 1\n\n\ny = 2")
       // Count actual blank lines
       const lines = output.split('\n')
-      expect(lines).toHaveLength(3) // x = 1, blank, y = 2
+      expect(lines).toHaveLength(4) // x = 1, blank, blank, y = 2
     }
   })
 
@@ -476,9 +476,9 @@ describe("Formatting: Smart Blank Line Preservation", () => {
 
     if (formatted.length > 0) {
       const output = formatted[0].newText.trim()
-      // User had 4 blanks, formatter wants 1, should normalize to 2 max
-      expect(output).toContain("x = 1\n\nfn f()")
-      // Should not have more than 2 blank lines
+      // User had 3 blank lines, should normalize to 2 max
+      expect(output).toContain("x = 1\n\n\nfn f()")
+      // Should not have more than 2 blank lines (which is 3 consecutive newlines)
       expect(output).not.toContain("\n\n\n\n")
     }
   })
@@ -512,8 +512,8 @@ z = 3`
 
     if (formatted.length > 0) {
       const output = formatted[0].newText.trim()
-      // Whitespace-only lines should be treated as blank
-      expect(output).toBe("x = 1\n\ny = 2")
+      // Whitespace-only lines should be treated as blank and preserved (2 whitespace lines = 2 blank lines)
+      expect(output).toBe("x = 1\n\n\ny = 2")
     }
   })
 })
