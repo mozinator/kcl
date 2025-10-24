@@ -22,19 +22,29 @@ TypeScript implementation of the [KittyCAD modeling language](https://kittycad.i
 }
 ```
 
-**Neovim (LazyVim)** - Add to config:
+**Neovim (LazyVim)** - Add to `~/.config/nvim/lua/config/autocmds.lua`:
 ```lua
+-- KCL Filetype Detection
+vim.filetype.add({
+  extension = {
+    kcl = "kcl",
+  },
+})
+
+-- KCL Language Server
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "kcl",
   callback = function()
     vim.lsp.start({
       name = "kcl-lsp",
-      cmd = { "bun", "path/to/src/kcl-lsp/server.ts" },
+      cmd = { "bun", "/absolute/path/to/src/kcl-lsp/server.ts" },
       root_dir = vim.fn.getcwd(),
     })
   end,
 })
 ```
+
+Then restart Neovim and open any `.kcl` file. Verify with `:LspInfo`
 
 ## CLI Tools
 
