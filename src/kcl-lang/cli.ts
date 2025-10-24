@@ -2,7 +2,7 @@
 /**
  * KCL AST CLI
  *
- * Parses KCL code and outputs the serialized AST as JSON.
+ * Parses KCL code and outputs the serialized AST as JSON (includes CST trivia).
  *
  * Usage:
  *   bun src/kcl-lang/cli.ts <file.kcl>
@@ -10,7 +10,6 @@
  *   bun src/kcl-lang/cli.ts -o ast.json file.kcl
  */
 
-import { lex } from "./lexer"
 import { parse } from "./parser"
 
 async function main() {
@@ -55,11 +54,10 @@ async function main() {
   }
 
   try {
-    // Lex and parse
-    const tokens = lex(source)
-    const ast = parse(tokens)
+    // Parse with CST (includes trivia)
+    const ast = parse(source)
 
-    // Serialize AST as JSON
+    // Serialize AST as JSON (includes trivia)
     const json = JSON.stringify(ast, null, 2)
 
     // Write to file or stdout

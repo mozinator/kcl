@@ -82,12 +82,7 @@ bun src/kcl-lsp/kcl-cli.ts check --json examples/box.kcl
 
 ### Additional Tools
 
-**Format to HTML** (syntax highlighting):
-```bash
-bun src/kcl-lsp/format-cli.ts --html examples/formatting-showcase.kcl > output.html
-```
-
-**Output AST as JSON**:
+**Output AST as JSON** (for debugging/tooling):
 ```bash
 bun src/kcl-lang/cli.ts examples/box.kcl > ast.json
 ```
