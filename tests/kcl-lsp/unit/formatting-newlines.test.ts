@@ -192,25 +192,26 @@ describe("Formatting: Objects", () => {
 })
 
 describe("Formatting: Comment Preservation", () => {
-  test("preserves line comments", () => {
+  test("default formatter preserves line comments when source is provided", () => {
     const manager = new DocumentManager()
-    const code = "// comment\nlet x = 10"
+    const code = "// comment\nx = 10"
     const result = manager.open("file:///test.kcl", code, 1)
 
-    const formatted = formatDocumentWithComments(result, code)
+    const formatted = formatDocument(result, code)
 
     if (formatted.length > 0) {
       const output = formatted[0].newText
       expect(output).toContain("// comment")
+      expect(output).toContain("x = 10")
     }
   })
 
   test("preserves comments between statements", () => {
     const manager = new DocumentManager()
-    const code = "let x = 10\n// middle comment\nlet y = 20"
+    const code = "x = 10\n// middle comment\ny = 20"
     const result = manager.open("file:///test.kcl", code, 1)
 
-    const formatted = formatDocumentWithComments(result, code)
+    const formatted = formatDocument(result, code)
 
     if (formatted.length > 0) {
       const output = formatted[0].newText
@@ -220,15 +221,42 @@ describe("Formatting: Comment Preservation", () => {
 
   test("preserves multiple comments", () => {
     const manager = new DocumentManager()
-    const code = "// first\nlet x = 10\n// second\nlet y = 20"
+    const code = "// first\nx = 10\n// second\ny = 20"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result, code)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText
+      expect(output).toContain("// first")
+      expect(output).toContain("// second")
+    }
+  })
+
+  test("preserves comments in function definitions", () => {
+    const manager = new DocumentManager()
+    const code = "// Function to make a box\nfn makeBox(w, h, d) {\n  // Call box operation\n  box(w, h, d)\n}"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result, code)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText
+      expect(output).toContain("// Function to make a box")
+      expect(output).toContain("// Call box operation")
+    }
+  })
+
+  test("formatDocumentWithComments still works for backwards compatibility", () => {
+    const manager = new DocumentManager()
+    const code = "// comment\nx = 10"
     const result = manager.open("file:///test.kcl", code, 1)
 
     const formatted = formatDocumentWithComments(result, code)
 
     if (formatted.length > 0) {
       const output = formatted[0].newText
-      expect(output).toContain("// first")
-      expect(output).toContain("// second")
+      expect(output).toContain("// comment")
     }
   })
 })
@@ -264,5 +292,74 @@ describe("Formatting: Edge Cases", () => {
 
     // Should break into multiple lines
     expect(formatted).toBeDefined()
+  })
+})
+
+describe("Formatting: Positional Arguments", () => {
+  test("positional arguments are formatted correctly, not as $0, $1, etc", () => {
+    const manager = new DocumentManager()
+    const code = "result = makeBox(10, 20, 30)"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText
+      // Should NOT have $0, $1, $2
+      expect(output).not.toContain("$0")
+      expect(output).not.toContain("$1")
+      expect(output).not.toContain("$2")
+      // Should keep positional args as-is
+      expect(output).toContain("makeBox(10, 20, 30)")
+    }
+  })
+
+  test("function definition with positional call preserves positional syntax", () => {
+    const manager = new DocumentManager()
+    const code = "fn makeBox(w, h, d) {\n  box(w, h, d)\n}"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText
+      // Should preserve positional syntax without $0, $1, $2
+      expect(output).not.toContain("$0")
+      expect(output).not.toContain("$1")
+      expect(output).not.toContain("$2")
+      expect(output).toContain("box(w, h, d)")
+    }
+  })
+
+  test("mixed named and positional arguments are preserved", () => {
+    const manager = new DocumentManager()
+    const code = "result = myFunc(100, 200, named = 300)"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText
+      // Should not add $0, $1 to positional args
+      expect(output).not.toContain("$0")
+      expect(output).not.toContain("$1")
+    }
+  })
+})
+
+describe("Formatting: Conditional Expressions", () => {
+  test("conditional expressions without parens don't add them", () => {
+    const manager = new DocumentManager()
+    const code = "size = if width > 50 { 100 } else { 50 }"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText
+      // Should not add parentheses around condition
+      expect(output).toContain("if width > 50 {")
+      expect(output).not.toContain("if (width > 50)")
+    }
   })
 })

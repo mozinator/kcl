@@ -10,10 +10,18 @@ import type { Program, Stmt, Expr } from "../../kcl-lang/ast"
 
 /**
  * Format a KCL document
+ *
+ * @param parseResult The parsed document
+ * @param originalSource Optional original source text. If provided, comments will be preserved.
  */
-export function formatDocument(parseResult: ParseResult): TextEdit[] {
+export function formatDocument(parseResult: ParseResult, originalSource?: string): TextEdit[] {
   if (!parseResult.success) {
     return []
+  }
+
+  // If original source is provided, use comment-preserving formatter
+  if (originalSource) {
+    return formatDocumentPreservingComments(parseResult, originalSource)
   }
 
   const formatted = formatProgram(parseResult.program)
@@ -29,6 +37,79 @@ export function formatDocument(parseResult: ParseResult): TextEdit[] {
         end: { line: lastLine + 1, character: 0 },
       },
       newText: formatted,
+    },
+  ]
+}
+
+/**
+ * Format document while preserving comments
+ */
+function formatDocumentPreservingComments(
+  parseResult: ParseResult,
+  originalSource: string
+): TextEdit[] {
+  const originalLines = originalSource.split('\n')
+
+  // Extract comments from original (line-indexed)
+  const commentLines = new Set<number>()
+  for (let i = 0; i < originalLines.length; i++) {
+    const trimmed = originalLines[i].trim()
+    if (trimmed.startsWith('//') || trimmed.startsWith('/*')) {
+      commentLines.add(i)
+    }
+  }
+
+  // Get base formatted output without comments
+  const formatted = formatProgram(parseResult.program)
+  const formattedLines = formatted.split('\n')
+
+  // Merge: go through original lines, preserve comments, use formatted code
+  const result: string[] = []
+  let formattedIdx = 0
+
+  for (let i = 0; i < originalLines.length; i++) {
+    const originalLine = originalLines[i]
+
+    if (commentLines.has(i)) {
+      // This is a comment line - preserve it exactly
+      result.push(originalLine)
+    } else if (originalLine.trim() === '') {
+      // Blank line - skip it (let formatter control blank lines)
+      continue
+    } else {
+      // Code line - use formatted version
+      if (formattedIdx < formattedLines.length) {
+        // Skip blank lines in formatted output
+        while (formattedIdx < formattedLines.length && formattedLines[formattedIdx].trim() === '') {
+          result.push(formattedLines[formattedIdx])
+          formattedIdx++
+        }
+
+        if (formattedIdx < formattedLines.length) {
+          result.push(formattedLines[formattedIdx])
+          formattedIdx++
+        }
+      }
+    }
+  }
+
+  // Add any remaining formatted lines
+  while (formattedIdx < formattedLines.length) {
+    result.push(formattedLines[formattedIdx])
+    formattedIdx++
+  }
+
+  const finalText = result.join('\n')
+
+  const lastLine = parseResult.lineOffsets.length - 1
+
+  return [
+    {
+      range: {
+        start: { line: 0, character: 0 },
+        end: { line: lastLine + 1, character: 0 },
+      },
+      newText: finalText,
     },
   ]
 }
@@ -187,7 +268,15 @@ function formatExpression(expr: Expr): string {
 
     case "Call": {
       const args = Object.entries(expr.args)
-        .map(([key, value]) => `${key} = ${formatExpression(value)}`)
+        .map(([key, value]) => {
+          // Positional arguments use keys like $0, $1, $2
+          // Format them without the key name
+          if (/^\$\d+$/.test(key)) {
+            return formatExpression(value)
+          }
+          // Named arguments
+          return `${key} = ${formatExpression(value)}`
+        })
 
       const argsStr = args.join(", ")
 
@@ -261,10 +350,10 @@ function formatExpression(expr: Expr): string {
     }
 
     case "If": {
-      let result = `if (${formatExpression(expr.condition)}) { ${formatExpression(expr.thenBranch)} }`
+      let result = `if ${formatExpression(expr.condition)} { ${formatExpression(expr.thenBranch)} }`
 
       for (const branch of expr.elseIfBranches) {
-        result += ` else if (${formatExpression(branch.condition)}) { ${formatExpression(branch.body)} }`
+        result += ` else if ${formatExpression(branch.condition)} { ${formatExpression(branch.body)} }`
       }
 
       if (expr.elseBranch) {

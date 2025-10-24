@@ -267,3 +267,45 @@ describe("Diagnostics: Recovery", () => {
     expect(diag2.length).toBeGreaterThan(0)
   })
 })
+
+describe("Diagnostics: Error Position Accuracy", () => {
+  test("reports missing argument error on function call line, not on unrelated variable assignment", () => {
+    const manager = new DocumentManager()
+    const code = `width = 50
+height = 75
+depth = 30
+
+myBox = box(width = width, height = height)`
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const diagnostics = getDiagnostics(result)
+
+    // Should have one type error about missing 'depth' argument
+    const typeError = diagnostics.find(d => d.source === "kcl-typecheck")
+    expect(typeError).toBeDefined()
+    expect(typeError?.message).toContain("Missing argument")
+    expect(typeError?.message).toContain("depth")
+
+    // CRITICAL: Error should be on line 4 (the box() call with 0-based indexing)
+    // NOT on line 0 (width = 50) or line 1 (height = 75) or line 2 (depth = 30)
+    expect(typeError?.range.start.line).toBe(4)
+  })
+
+  test("reports error on correct identifier when multiple occurrences exist", () => {
+    const manager = new DocumentManager()
+    const code = `width = 50
+height = 75
+
+// This should be flagged, not the variable above
+result = unknownFunction()`
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const diagnostics = getDiagnostics(result)
+
+    const typeError = diagnostics.find(d => d.source === "kcl-typecheck")
+    expect(typeError).toBeDefined()
+
+    // Error should be on line 4 (the unknownFunction call)
+    expect(typeError?.range.start.line).toBe(4)
+  })
+})

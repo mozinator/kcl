@@ -227,7 +227,8 @@ class KclLanguageServer {
     if (!parseResult) {
       return []
     }
-    return formatDocument(parseResult)
+    const originalSource = this.documents.getText(params.textDocument.uri)
+    return formatDocument(parseResult, originalSource)
   }
 
   private handlePrepareRename(params: PrepareRenameParams) {

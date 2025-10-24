@@ -2,6 +2,8 @@
 
 TypeScript implementation of the [KittyCAD modeling language](https://kittycad.io). Built with Bun, zero dependencies.
 
+![KCL Syntax Highlighting](assets/screenshots/syntax-highlighting-dark.png)
+
 ## Components
 
 - **Parser** - Lexer, parser, type checker (`src/kcl-lang/`)
