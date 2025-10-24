@@ -18,21 +18,28 @@ export function getDiagnostics(parseResult: ParseResult): Diagnostic[] {
   const diagnostics: Diagnostic[] = []
 
   // Check for deprecated 'let' keyword usage by traversing AST
-  for (let i = 0; i < parseResult.program.body.length; i++) {
-    const stmt = parseResult.program.body[i]
+  let letKeywordIndex = 0
+  for (const stmt of parseResult.program.body) {
     if (stmt.kind === "Let") {
-      // Estimate position based on line offset (best effort without exact token positions)
-      const line = i // Rough estimate: each statement on its own line
-      diagnostics.push({
-        range: {
-          start: { line, character: 0 },
-          end: { line, character: 3 }, // "let" is 3 chars
-        },
-        severity: 2, // Warning (not error)
-        source: "kcl-deprecated",
-        message: "The 'let' keyword is deprecated. Use direct assignment instead: 'myVar = value'",
-        code: "deprecated-let-keyword",
-      })
+      // Find the actual 'let' keyword token in the token stream
+      // We need to find the nth occurrence of the 'let' keyword
+      let foundCount = 0
+      for (const token of parseResult.tokens) {
+        if (token.k === "Kw" && token.v === "let") {
+          if (foundCount === letKeywordIndex) {
+            diagnostics.push({
+              range: token.range,
+              severity: 2, // Warning (not error)
+              source: "kcl-deprecated",
+              message: "The 'let' keyword is deprecated. Use direct assignment instead: 'myVar = value'",
+              code: "deprecated-let-keyword",
+            })
+            break
+          }
+          foundCount++
+        }
+      }
+      letKeywordIndex++
     }
   }
 

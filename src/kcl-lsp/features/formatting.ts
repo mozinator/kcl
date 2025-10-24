@@ -91,17 +91,6 @@ function formatProgram(program: Program): string {
       lines.push(formatted)
     }
     hasOutputContent = true
-
-    // Add blank line between statements if needed (formatter rules)
-    if (nextStmt) {
-      const needsBlank = shouldAddBlankLine(stmt, nextStmt)
-      const hasUserBlank = nextStmt.trivia?.leading?.some(t => t.type === 'blank')
-
-      // Only add blank if formatter wants one AND user doesn't already have blanks
-      if (needsBlank && !hasUserBlank) {
-        lines.push('')
-      }
-    }
   }
 
   // Remove trailing blank lines and ensure single trailing newline
@@ -110,28 +99,6 @@ function formatProgram(program: Program): string {
   }
 
   return lines.join("\n") + "\n"
-}
-
-/**
- * Determine if a blank line should be added between statements
- */
-function shouldAddBlankLine(current: Stmt, next: Stmt): boolean {
-  // Blank line after function definitions
-  if (current.kind === "FnDef") {
-    return true
-  }
-
-  // Blank line before function definitions
-  if (next.kind === "FnDef") {
-    return true
-  }
-
-  // Blank line after imports
-  if (current.kind === "Import" && next.kind !== "Import") {
-    return true
-  }
-
-  return false
 }
 
 /**
