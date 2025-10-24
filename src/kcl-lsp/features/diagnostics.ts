@@ -1,15 +1,23 @@
 /**
  * Diagnostics Feature
  *
- * Reports parse errors and type errors as LSP diagnostics.
+ * Reports parse errors, type errors, and lint warnings as LSP diagnostics.
  */
 
 import type { Diagnostic, Range } from "../protocol"
 import type { ParseResult } from "../document-manager"
 import type { Program, Stmt } from "../../kcl-lang/ast"
+import type { TokWithPos } from "../lexer-with-positions"
 import { typecheck } from "../../kcl-lang/typecheck"
+import { LintEngine, createDefaultRules } from "../lint/engine"
 
-export function getDiagnostics(parseResult: ParseResult): Diagnostic[] {
+// Singleton lint engine with default rules
+const lintEngine = new LintEngine(createDefaultRules())
+
+/**
+ * Get diagnostics with optional lint configuration
+ */
+export function getDiagnostics(parseResult: ParseResult, enableLint: boolean = true): Diagnostic[] {
   // If parsing failed, return parse diagnostics
   if (!parseResult.success) {
     return parseResult.diagnostics
@@ -60,7 +68,25 @@ export function getDiagnostics(parseResult: ParseResult): Diagnostic[] {
     })
   }
 
+  // Run lint rules (warnings and info)
+  if (enableLint) {
+    const lintDiagnostics = lintEngine.lint(parseResult)
+    diagnostics.push(...lintDiagnostics)
+  }
+
   return diagnostics
+}
+
+/**
+ * Update lint configuration
+ */
+export function configureLint(config: { enabled?: boolean; disabledRules?: string[] }) {
+  if (config.enabled !== undefined) {
+    lintEngine.updateConfig({ enabled: config.enabled })
+  }
+  if (config.disabledRules) {
+    lintEngine.updateConfig({ disabledRules: config.disabledRules })
+  }
 }
 
 /**

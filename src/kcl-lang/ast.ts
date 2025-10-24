@@ -89,7 +89,7 @@ export type TypeAnnotation =
   | { kind: "ObjectType"; fields: Array<{ name: string; type: TypeAnnotation }> }
   | { kind: "NamedType"; name: string }
 
-export type NumericSuffix = "mm" | "cm" | "m" | "in" | "ft" | "yd" | "deg" | "rad" | "_"
+export type NumericSuffix = "mm" | "cm" | "m" | "in" | "inch" | "ft" | "yd" | "deg" | "rad" | "_" | "?"
 
 export type ArrayLength =
   | { kind: "Exact"; value: number } // [T; 5]

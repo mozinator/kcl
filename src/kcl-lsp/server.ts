@@ -14,6 +14,7 @@ import type {
   DidOpenTextDocumentParams,
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
+  DidSaveTextDocumentParams,
   CompletionParams,
   HoverParams,
   DefinitionParams,
@@ -24,6 +25,12 @@ import type {
   RenameParams,
   PrepareRenameParams,
   CodeActionParams,
+  FoldingRangeParams,
+  ReferenceParams,
+  CreateFilesParams,
+  RenameFilesParams,
+  DeleteFilesParams,
+  DidChangeWatchedFilesParams,
 } from "./protocol"
 import { getDiagnostics } from "./features/diagnostics"
 import { getCompletions } from "./features/completion"
@@ -35,6 +42,8 @@ import { getDocumentSymbols } from "./features/symbols"
 import { formatDocument } from "./features/formatting"
 import { prepareRename, performRename } from "./features/rename"
 import { getCodeActions } from "./features/code-actions"
+import { getFoldingRanges } from "./features/folding-ranges"
+import { getReferences } from "./features/references"
 
 class KclLanguageServer {
   private connection: Connection
@@ -68,6 +77,27 @@ class KclLanguageServer {
 
     this.connection.onNotification("textDocument/didClose", (params: DidCloseTextDocumentParams) => {
       this.handleDidClose(params)
+    })
+
+    this.connection.onNotification("textDocument/didSave", (params: DidSaveTextDocumentParams) => {
+      this.handleDidSave(params)
+    })
+
+    // File operations
+    this.connection.onNotification("workspace/didCreateFiles", (params: CreateFilesParams) => {
+      this.handleDidCreateFiles(params)
+    })
+
+    this.connection.onNotification("workspace/didRenameFiles", (params: RenameFilesParams) => {
+      this.handleDidRenameFiles(params)
+    })
+
+    this.connection.onNotification("workspace/didDeleteFiles", (params: DeleteFilesParams) => {
+      this.handleDidDeleteFiles(params)
+    })
+
+    this.connection.onNotification("workspace/didChangeWatchedFiles", (params: DidChangeWatchedFilesParams) => {
+      this.handleDidChangeWatchedFiles(params)
     })
 
     // Language features
@@ -111,6 +141,14 @@ class KclLanguageServer {
       return this.handleCodeAction(params)
     })
 
+    this.connection.onRequest("textDocument/foldingRange", (params: FoldingRangeParams) => {
+      return this.handleFoldingRange(params)
+    })
+
+    this.connection.onRequest("textDocument/references", (params: ReferenceParams) => {
+      return this.handleReferences(params)
+    })
+
     // Shutdown
     this.connection.onRequest("shutdown", () => {
       return null
@@ -127,12 +165,14 @@ class KclLanguageServer {
         textDocumentSync: {
           openClose: true,
           change: 1, // Full sync
+          save: true,
         },
         completionProvider: {
           triggerCharacters: [".", "|"],
         },
         hoverProvider: true,
         definitionProvider: true,
+        referencesProvider: true,
         documentSymbolProvider: true,
         documentFormattingProvider: true,
         renameProvider: {
@@ -148,10 +188,18 @@ class KclLanguageServer {
           legend: getSemanticTokensLegend(),
           full: true,
         },
+        foldingRangeProvider: true,
+        workspace: {
+          fileOperations: {
+            didCreate: { filters: [{ pattern: { glob: "**/*.kcl" } }] },
+            didRename: { filters: [{ pattern: { glob: "**/*.kcl" } }] },
+            didDelete: { filters: [{ pattern: { glob: "**/*.kcl" } }] },
+          },
+        },
       },
       serverInfo: {
         name: "kcl-language-server",
-        version: "0.3.3",
+        version: "0.4.0",
       },
     }
   }
@@ -172,6 +220,52 @@ class KclLanguageServer {
   private handleDidClose(params: DidCloseTextDocumentParams) {
     const { uri } = params.textDocument
     this.documents.close(uri)
+  }
+
+  private handleDidSave(params: DidSaveTextDocumentParams) {
+    // Re-validate document on save
+    const parseResult = this.documents.getParseResult(params.textDocument.uri)
+    if (parseResult) {
+      this.publishDiagnostics(params.textDocument.uri, parseResult)
+    }
+  }
+
+  private handleDidCreateFiles(params: CreateFilesParams) {
+    // Files created - could pre-parse them if needed
+    // For now, just a placeholder for future functionality
+  }
+
+  private handleDidRenameFiles(params: RenameFilesParams) {
+    // Handle file renames - update document cache
+    for (const file of params.files) {
+      const doc = this.documents.get(file.oldUri)
+      if (doc) {
+        this.documents.close(file.oldUri)
+        // Note: The client will send a didOpen for the new URI
+      }
+    }
+  }
+
+  private handleDidDeleteFiles(params: DeleteFilesParams) {
+    // Handle file deletions - clean up cache
+    for (const file of params.files) {
+      this.documents.close(file.uri)
+    }
+  }
+
+  private handleDidChangeWatchedFiles(params: DidChangeWatchedFilesParams) {
+    // Handle external file changes
+    for (const change of params.changes) {
+      if (change.type === 2) { // Changed
+        // Re-parse if we have it open
+        const parseResult = this.documents.getParseResult(change.uri)
+        if (parseResult) {
+          this.publishDiagnostics(change.uri, parseResult)
+        }
+      } else if (change.type === 3) { // Deleted
+        this.documents.close(change.uri)
+      }
+    }
   }
 
   private handleCompletion(params: CompletionParams) {
@@ -234,7 +328,7 @@ class KclLanguageServer {
       console.error(`[KCL LSP] Warning: originalSource is undefined for ${params.textDocument.uri}`)
     }
 
-    return formatDocument(parseResult, originalSource)
+    return formatDocument(parseResult, originalSource, params.options)
   }
 
   private handlePrepareRename(params: PrepareRenameParams) {
@@ -260,6 +354,27 @@ class KclLanguageServer {
     }
     const diagnostics = getDiagnostics(parseResult)
     return getCodeActions(parseResult, params.range, diagnostics, params.textDocument.uri)
+  }
+
+  private handleFoldingRange(params: FoldingRangeParams) {
+    const parseResult = this.documents.getParseResult(params.textDocument.uri)
+    if (!parseResult) {
+      return []
+    }
+    return getFoldingRanges(parseResult)
+  }
+
+  private handleReferences(params: ReferenceParams) {
+    const parseResult = this.documents.getParseResult(params.textDocument.uri)
+    if (!parseResult) {
+      return null
+    }
+    return getReferences(
+      parseResult,
+      params.position,
+      params.textDocument.uri,
+      params.context.includeDeclaration
+    )
   }
 
   private publishDiagnostics(uri: string, parseResult: any) {

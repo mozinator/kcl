@@ -14,7 +14,8 @@ describe("Diagnostics: Valid Code", () => {
     const code = "x = 10"
     const result = manager.open("file:///test.kcl", code, 1)
 
-    const diagnostics = getDiagnostics(result)
+    // Disable lint to test only parser/type errors
+    const diagnostics = getDiagnostics(result, false)
 
     expect(diagnostics).toHaveLength(0)
   })
@@ -24,7 +25,8 @@ describe("Diagnostics: Valid Code", () => {
     const code = "shape = box(width = 10, height = 20, depth = 30)"
     const result = manager.open("file:///test.kcl", code, 1)
 
-    const diagnostics = getDiagnostics(result)
+    // Disable lint to test only parser/type errors
+    const diagnostics = getDiagnostics(result, false)
 
     expect(diagnostics).toHaveLength(0)
   })
@@ -37,7 +39,8 @@ describe("Diagnostics: Valid Code", () => {
 result = myFunc(10, 20)`
     const result = manager.open("file:///test.kcl", code, 1)
 
-    const diagnostics = getDiagnostics(result)
+    // Disable lint to test only parser/type errors
+    const diagnostics = getDiagnostics(result, false)
 
     expect(diagnostics).toHaveLength(0)
   })
@@ -243,12 +246,12 @@ describe("Diagnostics: Recovery", () => {
 
     // Start with error
     const result1 = manager.open(uri, "x = {", 1)
-    const diag1 = getDiagnostics(result1)
+    const diag1 = getDiagnostics(result1, false) // Disable lint
     expect(diag1.length).toBeGreaterThan(0)
 
     // Fix the error
     const result2 = manager.update(uri, "x = 10", 2)
-    const diag2 = getDiagnostics(result2)
+    const diag2 = getDiagnostics(result2, false) // Disable lint
     expect(diag2).toHaveLength(0)
   })
 
@@ -258,12 +261,12 @@ describe("Diagnostics: Recovery", () => {
 
     // Start valid
     const result1 = manager.open(uri, "x = 10", 1)
-    const diag1 = getDiagnostics(result1)
+    const diag1 = getDiagnostics(result1, false) // Disable lint
     expect(diag1).toHaveLength(0)
 
     // Introduce error
     const result2 = manager.update(uri, "x = {", 2)
-    const diag2 = getDiagnostics(result2)
+    const diag2 = getDiagnostics(result2, false) // Disable lint
     expect(diag2.length).toBeGreaterThan(0)
   })
 })

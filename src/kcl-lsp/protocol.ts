@@ -297,6 +297,7 @@ export type DocumentFormattingParams = {
 export type FormattingOptions = {
   tabSize: number
   insertSpaces: boolean
+  insertFinalNewline?: boolean
 }
 
 // ===== Rename =====
@@ -340,4 +341,58 @@ export type Command = {
   title: string
   command: string
   arguments?: any[]
+}
+
+// ===== Folding Ranges =====
+
+export type FoldingRangeParams = {
+  textDocument: TextDocumentIdentifier
+}
+
+export type FoldingRange = {
+  startLine: number
+  endLine: number
+  startCharacter?: number
+  endCharacter?: number
+  kind?: "comment" | "imports" | "region"
+}
+
+// ===== File Operations =====
+
+export type DidSaveTextDocumentParams = {
+  textDocument: TextDocumentIdentifier
+  text?: string
+}
+
+export type FileEvent = {
+  uri: string
+  type: 1 | 2 | 3 // 1 = Created, 2 = Changed, 3 = Deleted
+}
+
+export type DidChangeWatchedFilesParams = {
+  changes: FileEvent[]
+}
+
+export type CreateFilesParams = {
+  files: Array<{ uri: string }>
+}
+
+export type RenameFilesParams = {
+  files: Array<{ oldUri: string; newUri: string }>
+}
+
+export type DeleteFilesParams = {
+  files: Array<{ uri: string }>
+}
+
+// ===== References =====
+
+export type ReferenceParams = {
+  textDocument: TextDocumentIdentifier
+  position: Position
+  context: ReferenceContext
+}
+
+export type ReferenceContext = {
+  includeDeclaration: boolean
 }

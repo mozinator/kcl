@@ -5,7 +5,7 @@
  * Trivia includes comments, whitespace, and blank lines for CST support.
  */
 
-export type NumericUnit = "mm" | "cm" | "m" | "in" | "ft" | "yd" | "deg" | "rad" | "_"
+export type NumericUnit = "mm" | "cm" | "m" | "in" | "inch" | "ft" | "yd" | "deg" | "rad" | "_" | "?"
 
 export type Tok =
   | { k: "Ident"; v: string }
@@ -142,7 +142,8 @@ export function lex(src: string): LexResult {
     const value = parseFloat(s)
 
     // Check for unit suffix
-    const unitSuffixes: NumericUnit[] = ["mm", "cm", "m", "in", "ft", "yd", "deg", "rad", "_"]
+    // Note: Order matters! Check longer suffixes first (e.g., "inch" before "in")
+    const unitSuffixes: NumericUnit[] = ["inch", "mm", "cm", "m", "in", "ft", "yd", "deg", "rad", "_", "?"]
     for (const unit of unitSuffixes) {
       if (src.substring(i, i + unit.length) === unit) {
         // Make sure it's not part of an identifier (e.g., "42mm" but not "42mmx")

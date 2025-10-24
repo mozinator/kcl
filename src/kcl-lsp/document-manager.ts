@@ -2,6 +2,7 @@
  * Document Manager
  *
  * Manages open documents, parses them, and caches the results.
+ * Implements change detection to avoid unnecessary re-parsing.
  */
 
 import type { DocumentUri, Diagnostic, DiagnosticSeverity } from "./protocol"
@@ -22,28 +23,54 @@ export type ParseResult = {
   lineOffsets: number[]
 }
 
+/**
+ * Simple hash function for change detection
+ */
+function hashString(str: string): string {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32-bit integer
+  }
+  return hash.toString(36)
+}
+
 export class DocumentManager {
   private documents = new Map<DocumentUri, {
     text: string
     version: number
+    textHash: string
     parseResult: ParseResult
+    diagnosticsCache?: Diagnostic[]
   }>()
 
   /**
    * Open a document
    */
   open(uri: DocumentUri, text: string, version: number) {
+    const textHash = hashString(text)
     const parseResult = this.parseDocument(text)
-    this.documents.set(uri, { text, version, parseResult })
+    this.documents.set(uri, { text, version, textHash, parseResult })
     return parseResult
   }
 
   /**
-   * Update a document
+   * Update a document with change detection optimization
    */
   update(uri: DocumentUri, text: string, version: number) {
+    const existing = this.documents.get(uri)
+    const textHash = hashString(text)
+
+    // Optimization: If text hasn't changed, return cached result
+    if (existing && existing.textHash === textHash) {
+      // Text is identical, no need to re-parse
+      return existing.parseResult
+    }
+
+    // Text changed, need to re-parse
     const parseResult = this.parseDocument(text)
-    this.documents.set(uri, { text, version, parseResult })
+    this.documents.set(uri, { text, version, textHash, parseResult })
     return parseResult
   }
 
@@ -73,6 +100,23 @@ export class DocumentManager {
    */
   getParseResult(uri: DocumentUri): ParseResult | undefined {
     return this.documents.get(uri)?.parseResult
+  }
+
+  /**
+   * Cache diagnostics for a document
+   */
+  cacheDiagnostics(uri: DocumentUri, diagnostics: Diagnostic[]) {
+    const doc = this.documents.get(uri)
+    if (doc) {
+      doc.diagnosticsCache = diagnostics
+    }
+  }
+
+  /**
+   * Get cached diagnostics for a document
+   */
+  getCachedDiagnostics(uri: DocumentUri): Diagnostic[] | undefined {
+    return this.documents.get(uri)?.diagnosticsCache
   }
 
   /**

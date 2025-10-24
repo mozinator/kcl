@@ -5,22 +5,36 @@
  * Uses CST (Concrete Syntax Tree) with trivia for perfect comment preservation.
  */
 
-import type { TextEdit, Range } from "../protocol"
+import type { TextEdit, Range, FormattingOptions } from "../protocol"
 import type { ParseResult } from "../document-manager"
 import type { Program, Stmt, Expr, TriviaItem } from "../../kcl-lang/ast"
+
+export type FormatOptions = {
+  indentation: string // What to use for one level of indentation (e.g., "  " or "\t")
+  insertFinalNewline: boolean // Whether to ensure file ends with newline
+}
 
 /**
  * Format a KCL document
  *
  * @param parseResult The parsed document (now includes trivia from CST)
  * @param originalSource Optional - no longer needed but kept for API compatibility
+ * @param formattingOptions Optional LSP formatting options from the editor
  */
-export function formatDocument(parseResult: ParseResult, originalSource?: string): TextEdit[] {
+export function formatDocument(parseResult: ParseResult, originalSource?: string, formattingOptions?: FormattingOptions): TextEdit[] {
   if (!parseResult.success) {
     return []
   }
 
-  const formatted = formatProgram(parseResult.program)
+  // Convert LSP formatting options to our format options
+  const formatOptions: FormatOptions = {
+    indentation: formattingOptions?.insertSpaces !== false
+      ? " ".repeat(formattingOptions?.tabSize || 2)
+      : "\t",
+    insertFinalNewline: formattingOptions?.insertFinalNewline !== false,
+  }
+
+  const formatted = formatProgram(parseResult.program, formatOptions)
 
   // Return a single edit that replaces the entire document
   const lastLine = parseResult.lineOffsets.length - 1
@@ -54,9 +68,32 @@ function emitTrivia(trivia: TriviaItem[], lines: string[]): void {
 }
 
 /**
+ * Determine if a blank line should be added before a statement
+ */
+function shouldAddBlankLineBefore(prevStmt: Stmt | undefined, currentStmt: Stmt): boolean {
+  if (!prevStmt) return false
+
+  // Get the actual statement type (unwrap Export)
+  const prevType = prevStmt.kind === 'Export' ? prevStmt.stmt.kind : prevStmt.kind
+  const currType = currentStmt.kind === 'Export' ? (currentStmt as any).stmt.kind : currentStmt.kind
+
+  // Add blank line before function definitions (but not after other functions)
+  if (currType === 'FnDef' && prevType !== 'FnDef') {
+    return true
+  }
+
+  // Add blank line after function definitions (but not if next is also a function)
+  if (prevType === 'FnDef' && currType !== 'FnDef') {
+    return true
+  }
+
+  return false
+}
+
+/**
  * Format a program with trivia (CST-based)
  */
-function formatProgram(program: Program): string {
+function formatProgram(program: Program, options: FormatOptions): string {
   const lines: string[] = []
   let hasOutputContent = false
 
@@ -73,16 +110,19 @@ function formatProgram(program: Program): string {
 
   for (let i = 0; i < program.body.length; i++) {
     const stmt = program.body[i]
-    const nextStmt = program.body[i + 1]
+    const prevStmt = program.body[i - 1]
 
     // Emit leading trivia (comments and blank lines)
     if (stmt.trivia?.leading && stmt.trivia.leading.length > 0) {
       emitTrivia(stmt.trivia.leading, lines)
       hasOutputContent = true
+    } else if (i > 0 && shouldAddBlankLineBefore(prevStmt, stmt)) {
+      // Add blank line between different statement types if no trivia
+      lines.push('')
     }
 
     // Format the statement
-    const formatted = formatStatement(stmt, 0)
+    const formatted = formatStatement(stmt, 0, options)
 
     // Add trailing comment on same line if present
     if (stmt.trivia?.trailing && stmt.trivia.trailing.type === 'comment') {
@@ -93,19 +133,21 @@ function formatProgram(program: Program): string {
     hasOutputContent = true
   }
 
-  // Remove trailing blank lines and ensure single trailing newline
+  // Remove trailing blank lines
   while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
     lines.pop()
   }
 
-  return lines.join("\n") + "\n"
+  // Add final newline if requested
+  const result = lines.join("\n")
+  return options.insertFinalNewline ? result + "\n" : result
 }
 
 /**
  * Format a statement with indentation
  */
-function formatStatement(stmt: Stmt, indent: number): string {
-  const indentStr = "  ".repeat(indent)
+function formatStatement(stmt: Stmt, indent: number, options: FormatOptions): string {
+  const indentStr = options.indentation.repeat(indent)
 
   switch (stmt.kind) {
     case "Let":
@@ -123,6 +165,7 @@ function formatStatement(stmt: Stmt, indent: number): string {
       }).join(", ")
 
       const returnType = stmt.returnType ? `: ${formatType(stmt.returnType)}` : ""
+      const innerIndent = options.indentation.repeat(indent + 1)
 
       // Single-expression functions CAN stay on one line if very simple
       if (stmt.body.length === 0 && stmt.returnExpr) {
@@ -133,7 +176,7 @@ function formatStatement(stmt: Stmt, indent: number): string {
         }
 
         // Otherwise multi-line
-        return `${indentStr}fn ${stmt.name}(${params})${returnType} {\n${"  ".repeat(indent + 1)}return ${returnExpr}\n${indentStr}}`
+        return `${indentStr}fn ${stmt.name}(${params})${returnType} {\n${innerIndent}return ${returnExpr}\n${indentStr}}`
       }
 
       // Multi-line function with body statements
@@ -143,7 +186,7 @@ function formatStatement(stmt: Stmt, indent: number): string {
         if (bodyStmt.trivia?.leading) {
           for (const item of bodyStmt.trivia.leading) {
             if (item.type === 'comment') {
-              bodyLines.push("  ".repeat(indent + 1) + item.text)
+              bodyLines.push(innerIndent + item.text)
             } else if (item.type === 'blank') {
               for (let i = 0; i < Math.min(item.count, 2); i++) {
                 bodyLines.push('')
@@ -153,7 +196,7 @@ function formatStatement(stmt: Stmt, indent: number): string {
         }
 
         // Format the statement
-        const formatted = formatStatement(bodyStmt, indent + 1)
+        const formatted = formatStatement(bodyStmt, indent + 1, options)
 
         // Add trailing comment if present
         if (bodyStmt.trivia?.trailing && bodyStmt.trivia.trailing.type === 'comment') {
@@ -164,12 +207,12 @@ function formatStatement(stmt: Stmt, indent: number): string {
       }
 
       if (stmt.returnExpr) {
-        bodyLines.push(`${"  ".repeat(indent + 1)}return ${formatExpression(stmt.returnExpr)}`)
+        bodyLines.push(`${innerIndent}return ${formatExpression(stmt.returnExpr)}`)
       }
 
       // If body is empty, still use multi-line for consistency
       if (bodyLines.length === 0 && !stmt.returnExpr) {
-        return `${indentStr}fn ${stmt.name}(${params})${returnType} {\n${"  ".repeat(indent + 1)}// TODO\n${indentStr}}`
+        return `${indentStr}fn ${stmt.name}(${params})${returnType} {\n${innerIndent}// TODO\n${indentStr}}`
       }
 
       return `${indentStr}fn ${stmt.name}(${params})${returnType} {\n${bodyLines.join("\n")}\n${indentStr}}`
@@ -201,7 +244,7 @@ function formatStatement(stmt: Stmt, indent: number): string {
     }
 
     case "Export":
-      return formatStatement(stmt.stmt, indent).replace(indentStr, `${indentStr}export `)
+      return formatStatement(stmt.stmt, indent, options).replace(indentStr, `${indentStr}export `)
 
     default:
       return `${indentStr}// Unknown statement`
