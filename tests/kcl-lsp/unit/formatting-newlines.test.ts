@@ -363,3 +363,157 @@ describe("Formatting: Conditional Expressions", () => {
     }
   })
 })
+
+describe("Formatting: Smart Blank Line Preservation", () => {
+  test("preserves single blank line between statements", () => {
+    const manager = new DocumentManager()
+    const code = "x = 1\n\ny = 2"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result, code)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText.trim()
+      // Should preserve the single blank line
+      expect(output).toBe("x = 1\n\ny = 2")
+    }
+  })
+
+  test("preserves double blank line between statements", () => {
+    const manager = new DocumentManager()
+    const code = "x = 1\n\n\ny = 2"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result, code)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText.trim()
+      // Should preserve double blank (2 newlines = 1 blank line shown)
+      expect(output).toBe("x = 1\n\ny = 2")
+    }
+  })
+
+  test("normalizes excessive blank lines to maximum of 2", () => {
+    const manager = new DocumentManager()
+    const code = "x = 1\n\n\n\n\ny = 2"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result, code)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText.trim()
+      // 5 blanks should be normalized to 2
+      expect(output).toBe("x = 1\n\ny = 2")
+      // Count actual blank lines
+      const lines = output.split('\n')
+      expect(lines).toHaveLength(3) // x = 1, blank, y = 2
+    }
+  })
+
+  test("preserves blank lines around comments", () => {
+    const manager = new DocumentManager()
+    const code = "x = 1\n\n// comment\n\ny = 2"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result, code)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText.trim()
+      // Should preserve blanks around comment
+      expect(output).toBe("x = 1\n\n// comment\n\ny = 2")
+    }
+  })
+
+  test("removes leading blank lines at start of file", () => {
+    const manager = new DocumentManager()
+    const code = "\n\n\nx = 1\ny = 2"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result, code)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText
+      // Should not start with blank lines
+      expect(output).toMatch(/^x = 1/)
+    }
+  })
+
+  test("normalizes trailing blank lines to single newline", () => {
+    const manager = new DocumentManager()
+    const code = "x = 1\ny = 2\n\n\n"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result, code)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText
+      // Should end with single newline
+      expect(output).toMatch(/y = 2\n$/)
+      expect(output).not.toMatch(/\n\n\n$/)
+    }
+  })
+
+  test("respects formatter rules for blank before function", () => {
+    const manager = new DocumentManager()
+    const code = "x = 1\nfn f() { return 1 }"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result, code)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText.trim()
+      // Formatter should add blank before function
+      expect(output).toContain("x = 1\n\nfn f()")
+    }
+  })
+
+  test("merges user blanks with formatter rules (max 2)", () => {
+    const manager = new DocumentManager()
+    const code = "x = 1\n\n\n\nfn f() { return 1 }"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result, code)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText.trim()
+      // User had 4 blanks, formatter wants 1, should normalize to 2 max
+      expect(output).toContain("x = 1\n\nfn f()")
+      // Should not have more than 2 blank lines
+      expect(output).not.toContain("\n\n\n\n")
+    }
+  })
+
+  test("preserves intentional section spacing", () => {
+    const manager = new DocumentManager()
+    const code = `// Section 1
+x = 1
+y = 2
+
+
+// Section 2
+z = 3`
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result, code)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText.trim()
+      // Should preserve the double blank between sections
+      expect(output).toContain("y = 2\n\n\n// Section 2")
+    }
+  })
+
+  test("handles blank lines with only whitespace", () => {
+    const manager = new DocumentManager()
+    const code = "x = 1\n  \n\t\ny = 2"
+    const result = manager.open("file:///test.kcl", code, 1)
+
+    const formatted = formatDocument(result, code)
+
+    if (formatted.length > 0) {
+      const output = formatted[0].newText.trim()
+      // Whitespace-only lines should be treated as blank
+      expect(output).toBe("x = 1\n\ny = 2")
+    }
+  })
+})

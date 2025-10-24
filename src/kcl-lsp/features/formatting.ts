@@ -42,7 +42,7 @@ export function formatDocument(parseResult: ParseResult, originalSource?: string
 }
 
 /**
- * Format document while preserving comments
+ * Format document while preserving comments and smart blank line handling
  */
 function formatDocumentPreservingComments(
   parseResult: ParseResult,
@@ -50,12 +50,18 @@ function formatDocumentPreservingComments(
 ): TextEdit[] {
   const originalLines = originalSource.split('\n')
 
-  // Extract comments from original (line-indexed)
-  const commentLines = new Set<number>()
+  // Classify each line: 'comment', 'blank', or 'code'
+  type LineType = 'comment' | 'blank' | 'code'
+  const lineTypes: LineType[] = []
+
   for (let i = 0; i < originalLines.length; i++) {
     const trimmed = originalLines[i].trim()
     if (trimmed.startsWith('//') || trimmed.startsWith('/*')) {
-      commentLines.add(i)
+      lineTypes.push('comment')
+    } else if (trimmed === '') {
+      lineTypes.push('blank')
+    } else {
+      lineTypes.push('code')
     }
   }
 
@@ -63,43 +69,91 @@ function formatDocumentPreservingComments(
   const formatted = formatProgram(parseResult.program)
   const formattedLines = formatted.split('\n')
 
-  // Merge: go through original lines, preserve comments, use formatted code
+  // Merge original with formatted, preserving comments and smart blank handling
   const result: string[] = []
   let formattedIdx = 0
+  let consecutiveBlanks = 0
+  let pendingBlanks = 0
+  let hasOutputAnyContent = false
 
   for (let i = 0; i < originalLines.length; i++) {
-    const originalLine = originalLines[i]
+    const lineType = lineTypes[i]
 
-    if (commentLines.has(i)) {
-      // This is a comment line - preserve it exactly
-      result.push(originalLine)
-    } else if (originalLine.trim() === '') {
-      // Blank line - skip it (let formatter control blank lines)
+    if (lineType === 'blank') {
+      // Track consecutive blanks (but don't output yet)
+      consecutiveBlanks++
       continue
-    } else {
-      // Code line - use formatted version
-      if (formattedIdx < formattedLines.length) {
-        // Skip blank lines in formatted output
-        while (formattedIdx < formattedLines.length && formattedLines[formattedIdx].trim() === '') {
-          result.push(formattedLines[formattedIdx])
-          formattedIdx++
-        }
+    }
 
-        if (formattedIdx < formattedLines.length) {
-          result.push(formattedLines[formattedIdx])
-          formattedIdx++
+    // We hit non-blank content
+    if (lineType === 'comment') {
+      // Before outputting comment, handle any pending blanks
+      if (hasOutputAnyContent && consecutiveBlanks > 0) {
+        // For code-to-comment transitions: preserve up to 2 blank lines
+        // 1-2 blanks → preserve as-is
+        // 3+ blanks → normalize to 2
+        pendingBlanks = Math.min(consecutiveBlanks, 2)
+        for (let b = 0; b < pendingBlanks; b++) {
+          result.push('')
         }
+      }
+      consecutiveBlanks = 0
+
+      // Output the comment line exactly as-is
+      result.push(originalLines[i])
+      hasOutputAnyContent = true
+    } else {
+      // Code line
+      // Check if formatter has blanks before this line
+      let formatterBlanks = 0
+      while (formattedIdx < formattedLines.length && formattedLines[formattedIdx].trim() === '') {
+        formatterBlanks++
+        formattedIdx++
+      }
+
+      // Decide how many blanks to output
+      if (hasOutputAnyContent) {
+        // For code-to-code: normalize all blanks to max 1
+        const normalizedUserBlanks = consecutiveBlanks > 0 ? 1 : 0
+
+        // Normalize formatter blanks: 1+ → 1 (formatter usually wants 1)
+        const normalizedFormatterBlanks = formatterBlanks > 0 ? 1 : 0
+
+        // Use the maximum of user intent and formatter rules
+        const desiredBlanks = Math.max(normalizedUserBlanks, normalizedFormatterBlanks)
+
+        for (let b = 0; b < desiredBlanks; b++) {
+          result.push('')
+        }
+      }
+      // else: skip leading blanks at start of file
+
+      consecutiveBlanks = 0
+
+      // Output the formatted code line
+      if (formattedIdx < formattedLines.length) {
+        result.push(formattedLines[formattedIdx])
+        formattedIdx++
+        hasOutputAnyContent = true
       }
     }
   }
 
-  // Add any remaining formatted lines
+  // Add any remaining formatted lines (shouldn't normally happen)
   while (formattedIdx < formattedLines.length) {
-    result.push(formattedLines[formattedIdx])
+    const line = formattedLines[formattedIdx]
+    if (line.trim() !== '' || result.length > 0) {
+      result.push(line)
+    }
     formattedIdx++
   }
 
-  const finalText = result.join('\n')
+  // Remove trailing blank lines and ensure single trailing newline
+  while (result.length > 0 && result[result.length - 1].trim() === '') {
+    result.pop()
+  }
+
+  const finalText = result.join('\n') + '\n'
 
   const lastLine = parseResult.lineOffsets.length - 1
 
