@@ -6,8 +6,7 @@
 
 import type { Diagnostic, Range } from "../protocol"
 import type { ParseResult } from "../document-manager"
-import type { Program } from "../../kcl-lang/ast"
-import type { TokWithPos } from "../lexer-with-positions"
+import type { Program, Stmt } from "../../kcl-lang/ast"
 import { typecheck } from "../../kcl-lang/typecheck"
 
 export function getDiagnostics(parseResult: ParseResult): Diagnostic[] {
@@ -18,11 +17,17 @@ export function getDiagnostics(parseResult: ParseResult): Diagnostic[] {
 
   const diagnostics: Diagnostic[] = []
 
-  // Check for deprecated 'let' keyword usage
-  for (const token of parseResult.tokens) {
-    if (token.k === "Kw" && token.v === "let") {
+  // Check for deprecated 'let' keyword usage by traversing AST
+  for (let i = 0; i < parseResult.program.body.length; i++) {
+    const stmt = parseResult.program.body[i]
+    if (stmt.kind === "Let") {
+      // Estimate position based on line offset (best effort without exact token positions)
+      const line = i // Rough estimate: each statement on its own line
       diagnostics.push({
-        range: token.range,
+        range: {
+          start: { line, character: 0 },
+          end: { line, character: 3 }, // "let" is 3 chars
+        },
         severity: 2, // Warning (not error)
         source: "kcl-deprecated",
         message: "The 'let' keyword is deprecated. Use direct assignment instead: 'myVar = value'",

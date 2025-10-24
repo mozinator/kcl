@@ -2,33 +2,28 @@
  * Document Formatting Feature
  *
  * Formats KCL code according to style conventions.
+ * Uses CST (Concrete Syntax Tree) with trivia for perfect comment preservation.
  */
 
 import type { TextEdit, Range } from "../protocol"
 import type { ParseResult } from "../document-manager"
-import type { Program, Stmt, Expr } from "../../kcl-lang/ast"
+import type { Program, Stmt, Expr, TriviaItem } from "../../kcl-lang/ast"
 
 /**
  * Format a KCL document
  *
- * @param parseResult The parsed document
- * @param originalSource Optional original source text. If provided, comments will be preserved.
+ * @param parseResult The parsed document (now includes trivia from CST)
+ * @param originalSource Optional - no longer needed but kept for API compatibility
  */
 export function formatDocument(parseResult: ParseResult, originalSource?: string): TextEdit[] {
   if (!parseResult.success) {
     return []
   }
 
-  // If original source is provided, use comment-preserving formatter
-  if (originalSource) {
-    return formatDocumentPreservingComments(parseResult, originalSource)
-  }
-
   const formatted = formatProgram(parseResult.program)
 
   // Return a single edit that replaces the entire document
   const lastLine = parseResult.lineOffsets.length - 1
-  const lastLineOffset = parseResult.lineOffsets[lastLine]
 
   return [
     {
@@ -42,165 +37,76 @@ export function formatDocument(parseResult: ParseResult, originalSource?: string
 }
 
 /**
- * Format document while preserving comments and smart blank line handling
+ * Emit trivia items as formatted lines
  */
-function formatDocumentPreservingComments(
-  parseResult: ParseResult,
-  originalSource: string
-): TextEdit[] {
-  const originalLines = originalSource.split('\n')
-
-  // Classify each line: 'comment', 'blank', or 'code'
-  type LineType = 'comment' | 'blank' | 'code'
-  const lineTypes: LineType[] = []
-
-  for (let i = 0; i < originalLines.length; i++) {
-    const trimmed = originalLines[i].trim()
-    if (trimmed.startsWith('//') || trimmed.startsWith('/*')) {
-      lineTypes.push('comment')
-    } else if (trimmed === '') {
-      lineTypes.push('blank')
-    } else {
-      lineTypes.push('code')
-    }
-  }
-
-  // Get base formatted output without comments
-  const formatted = formatProgram(parseResult.program)
-  const formattedLines = formatted.split('\n')
-
-  // Merge original with formatted, preserving comments and smart blank handling
-  const result: string[] = []
-  let formattedIdx = 0
-  let consecutiveBlanks = 0
-  let pendingBlanks = 0
-  let hasOutputAnyContent = false
-
-  for (let i = 0; i < originalLines.length; i++) {
-    const lineType = lineTypes[i]
-
-    if (lineType === 'blank') {
-      // Track consecutive blanks (but don't output yet)
-      consecutiveBlanks++
-      continue
-    }
-
-    // We hit non-blank content
-    if (lineType === 'comment') {
-      // Before outputting comment, peek ahead to see if formatter has blanks before next code
-      // These blanks represent the formatter's desired spacing after the previous code statement
-      let formatterBlanksBeforeNextCode = 0
-      let tempIdx = formattedIdx
-      while (tempIdx < formattedLines.length && formattedLines[tempIdx].trim() === '') {
-        formatterBlanksBeforeNextCode++
-        tempIdx++
-      }
-
-      // Handle pending blanks before comment
-      if (hasOutputAnyContent && (consecutiveBlanks > 0 || formatterBlanksBeforeNextCode > 0)) {
-        // Take max of user blanks and formatter blanks - they both refer to spacing before comment
-        // (formatter blanks are "after previous code", which is same as "before comment")
-        const effectiveBlanks = Math.max(consecutiveBlanks, formatterBlanksBeforeNextCode)
-        pendingBlanks = Math.min(effectiveBlanks, 2)
-
-        for (let b = 0; b < pendingBlanks; b++) {
-          result.push('')
-        }
-
-        // Consume formatter blanks so we don't output them again after the comment
-        if (formatterBlanksBeforeNextCode > 0) {
-          formattedIdx = tempIdx
-        }
-      }
-      consecutiveBlanks = 0
-
-      // Output the comment line exactly as-is
-      result.push(originalLines[i])
-      hasOutputAnyContent = true
-    } else {
-      // Code line
-      // Check if formatter has blanks before this line
-      let formatterBlanks = 0
-      while (formattedIdx < formattedLines.length && formattedLines[formattedIdx].trim() === '') {
-        formatterBlanks++
-        formattedIdx++
-      }
-
-      // Decide how many blanks to output
-      if (hasOutputAnyContent) {
-        // For code-to-code: preserve intentional blank lines (up to 2 max)
-        const normalizedUserBlanks = Math.min(consecutiveBlanks, 2)
-
-        // Normalize formatter blanks: 1+ → 1 (formatter usually wants 1)
-        const normalizedFormatterBlanks = formatterBlanks > 0 ? 1 : 0
-
-        // Use the maximum of user intent and formatter rules
-        const desiredBlanks = Math.max(normalizedUserBlanks, normalizedFormatterBlanks)
-
-        for (let b = 0; b < desiredBlanks; b++) {
-          result.push('')
-        }
-      }
-      // else: skip leading blanks at start of file
-
-      consecutiveBlanks = 0
-
-      // Output the formatted code line
-      if (formattedIdx < formattedLines.length) {
-        result.push(formattedLines[formattedIdx])
-        formattedIdx++
-        hasOutputAnyContent = true
+function emitTrivia(trivia: TriviaItem[], lines: string[]): void {
+  for (const item of trivia) {
+    if (item.type === 'comment') {
+      lines.push(item.text)
+    } else if (item.type === 'blank') {
+      // Normalize blank lines: max 2
+      const count = Math.min(item.count, 2)
+      for (let i = 0; i < count; i++) {
+        lines.push('')
       }
     }
   }
-
-  // Add any remaining formatted lines (shouldn't normally happen)
-  while (formattedIdx < formattedLines.length) {
-    const line = formattedLines[formattedIdx]
-    if (line.trim() !== '' || result.length > 0) {
-      result.push(line)
-    }
-    formattedIdx++
-  }
-
-  // Remove trailing blank lines and ensure single trailing newline
-  while (result.length > 0 && result[result.length - 1].trim() === '') {
-    result.pop()
-  }
-
-  const finalText = result.join('\n') + '\n'
-
-  const lastLine = parseResult.lineOffsets.length - 1
-
-  return [
-    {
-      range: {
-        start: { line: 0, character: 0 },
-        end: { line: lastLine + 1, character: 0 },
-      },
-      newText: finalText,
-    },
-  ]
 }
 
 /**
- * Format a program
+ * Format a program with trivia (CST-based)
  */
 function formatProgram(program: Program): string {
   const lines: string[] = []
+  let hasOutputContent = false
+
+  // Emit file header trivia (comments only, skip leading blanks)
+  if (program.leadingTrivia && program.leadingTrivia.length > 0) {
+    for (const item of program.leadingTrivia) {
+      if (item.type === 'comment') {
+        lines.push(item.text)
+        hasOutputContent = true
+      }
+      // Skip leading blank lines at start of file
+    }
+  }
 
   for (let i = 0; i < program.body.length; i++) {
     const stmt = program.body[i]
-    const formatted = formatStatement(stmt, 0)
-    lines.push(formatted)
+    const nextStmt = program.body[i + 1]
 
-    // Add blank line between different statement types
-    if (i < program.body.length - 1) {
-      const nextStmt = program.body[i + 1]
-      if (shouldAddBlankLine(stmt, nextStmt)) {
-        lines.push("")
+    // Emit leading trivia (comments and blank lines)
+    if (stmt.trivia?.leading && stmt.trivia.leading.length > 0) {
+      emitTrivia(stmt.trivia.leading, lines)
+      hasOutputContent = true
+    }
+
+    // Format the statement
+    const formatted = formatStatement(stmt, 0)
+
+    // Add trailing comment on same line if present
+    if (stmt.trivia?.trailing && stmt.trivia.trailing.type === 'comment') {
+      lines.push(formatted + '  ' + stmt.trivia.trailing.text)
+    } else {
+      lines.push(formatted)
+    }
+    hasOutputContent = true
+
+    // Add blank line between statements if needed (formatter rules)
+    if (nextStmt) {
+      const needsBlank = shouldAddBlankLine(stmt, nextStmt)
+      const hasUserBlank = nextStmt.trivia?.leading?.some(t => t.type === 'blank')
+
+      // Only add blank if formatter wants one AND user doesn't already have blanks
+      if (needsBlank && !hasUserBlank) {
+        lines.push('')
       }
     }
+  }
+
+  // Remove trailing blank lines and ensure single trailing newline
+  while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+    lines.pop()
   }
 
   return lines.join("\n") + "\n"
@@ -264,7 +170,32 @@ function formatStatement(stmt: Stmt, indent: number): string {
       }
 
       // Multi-line function with body statements
-      const bodyLines = stmt.body.map(s => formatStatement(s, indent + 1))
+      const bodyLines: string[] = []
+      for (const bodyStmt of stmt.body) {
+        // Emit leading trivia for body statement (comments, blanks)
+        if (bodyStmt.trivia?.leading) {
+          for (const item of bodyStmt.trivia.leading) {
+            if (item.type === 'comment') {
+              bodyLines.push("  ".repeat(indent + 1) + item.text)
+            } else if (item.type === 'blank') {
+              for (let i = 0; i < Math.min(item.count, 2); i++) {
+                bodyLines.push('')
+              }
+            }
+          }
+        }
+
+        // Format the statement
+        const formatted = formatStatement(bodyStmt, indent + 1)
+
+        // Add trailing comment if present
+        if (bodyStmt.trivia?.trailing && bodyStmt.trivia.trailing.type === 'comment') {
+          bodyLines.push(formatted + '  ' + bodyStmt.trivia.trailing.text)
+        } else {
+          bodyLines.push(formatted)
+        }
+      }
+
       if (stmt.returnExpr) {
         bodyLines.push(`${"  ".repeat(indent + 1)}return ${formatExpression(stmt.returnExpr)}`)
       }

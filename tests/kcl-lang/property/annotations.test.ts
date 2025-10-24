@@ -16,8 +16,7 @@ describe("Property-Based Tests: Annotations", () => {
         const src = `@${name}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Annotation")
@@ -45,8 +44,7 @@ describe("Property-Based Tests: Annotations", () => {
         const src = `@${name}(${argName} = ${argValue})`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Annotation")
@@ -78,8 +76,7 @@ describe("Property-Based Tests: Annotations", () => {
         const src = `@${name}(${argsStr})`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Annotation")
@@ -111,8 +108,7 @@ describe("Property-Based Tests: Annotations", () => {
         const src = `@${name}(text = "${stringVal}")`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Annotation")
@@ -139,8 +135,7 @@ describe("Property-Based Tests: Annotations", () => {
         const src = `@${name}(enabled = ${boolVal})`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Annotation")
@@ -167,8 +162,7 @@ describe("Property-Based Tests: Annotations", () => {
         const src = `@${name}(defaultLengthUnit = ${unit})`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Annotation")
@@ -198,8 +192,7 @@ describe("Property-Based Tests: Annotations", () => {
         const src = `@${annName}\nfn ${fnName}() { return ${returnVal} }`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(2)
           expect(ast.body[0].kind).toBe("Annotation")
@@ -230,8 +223,7 @@ describe("Property-Based Tests: Annotations", () => {
         const src = `@${annName}\nlet ${varName} = ${varValue}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(2)
           expect(ast.body[0].kind).toBe("Annotation")
@@ -267,8 +259,7 @@ describe("Property-Based Tests: Annotations", () => {
         const src = `${annsStr}\nlet value = ${varValue}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(numAnn + 1)
 
@@ -302,8 +293,7 @@ describe("Property-Based Tests: Annotations", () => {
         const src = `@config(value = ${value})`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Annotation")
@@ -334,8 +324,7 @@ describe("Property-Based Tests: Annotations", () => {
         const src = `@config(width = ${width}, height = ${height}, depth = ${depth})`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Annotation")
@@ -372,8 +361,7 @@ describe("Property-Based Tests: Annotations", () => {
         const src = `@public\nfn getVal() { return ${value} }`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           // Should parse successfully
           expect(ast.body.length).toBe(2)
@@ -398,8 +386,7 @@ describe("Property-Based Tests: Annotations", () => {
         const src = `@readonly\nlet x = ${val1}\nlet y = ${val2}\nlet z = x + y`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           // Should parse successfully
           expect(ast.body.length).toBe(4)

@@ -26,10 +26,7 @@ describe("KCL Parser Property Tests", () => {
   describe("Parser Determinism", () => {
     test("parser is deterministic on generated programs", () => {
       assertProperty(
-        Gen.flatMap(arbSmallProgram, prog => {
-          const src = programToSource(prog)
-          return Gen.map(Gen.constant(src), s => lex(s))
-        }),
+        Gen.map(arbSmallProgram, prog => programToSource(prog)),
         parserIsDeterministic,
         { runs: 500 }
       )
@@ -37,10 +34,7 @@ describe("KCL Parser Property Tests", () => {
 
     test("parser is deterministic on simple programs", () => {
       assertProperty(
-        Gen.flatMap(arbSimpleProgram, prog => {
-          const src = programToSource(prog)
-          return Gen.map(Gen.constant(src), s => lex(s))
-        }),
+        Gen.map(arbSimpleProgram, prog => programToSource(prog)),
         parserIsDeterministic,
         { runs: 300 }
       )
@@ -119,8 +113,8 @@ describe("KCL Parser Property Tests", () => {
         arbSmallProgram,
         (program) => {
           const src = programToSource(program)
-          const tokens = lex(src)
-          const parsed = parse(tokens)
+          
+          const parsed = parse(src)
           expect(parsed.kind).toBe("Program")
         },
         { runs: 300 }
@@ -132,8 +126,8 @@ describe("KCL Parser Property Tests", () => {
         arbSmallProgram,
         (program) => {
           const src = programToSource(program)
-          const tokens = lex(src)
-          const parsed = parse(tokens)
+          
+          const parsed = parse(src)
 
           for (const stmt of parsed.body) {
             if (stmt.kind === "Let") {

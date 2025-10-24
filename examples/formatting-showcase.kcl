@@ -1,5 +1,4 @@
 // KCL Syntax Showcase - Demonstrating language features
-
 // Constants and math
 radius = PI * 15
 diameter = radius * 2
@@ -18,6 +17,7 @@ fn makeBox(w, h, d) {
   box(w, h, d)
 }
 
+
 // Function calls with named arguments
 baseBox = box(width = width, height = height, depth = depth)
 smallBox = makeBox(10, 15, 20)
@@ -30,6 +30,7 @@ scaled = rotated |> scale(factor = 1.5)
 // Boolean operations
 combined = fuse(a = baseBox, b = smallBox)
 hollowed = subtract(base = combined, tool = scaled)
+
 
 // Conditional expressions
 size = if width > 50 { 100 } else { 50 }

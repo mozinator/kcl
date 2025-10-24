@@ -91,3 +91,7 @@ bun src/kcl-lsp/format-cli.ts --html examples/formatting-showcase.kcl > output.h
 ```bash
 bun src/kcl-lang/cli.ts examples/box.kcl > ast.json
 ```
+
+## Changelog
+
+- **2025-10-24**: Migrated to Concrete Syntax Tree (CST) architecture for lossless formatting

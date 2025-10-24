@@ -5,12 +5,11 @@
  */
 
 import { describe, test, expect } from "bun:test"
-import { lex } from "../../../src/kcl-lang/lexer"
 import { parse } from "../../../src/kcl-lang/parser"
 
 describe("Parser: Literals", () => {
   test("number literal", () => {
-    const ast = parse(lex("42"))
+    const ast = parse("42")
     expect(ast.body).toBeDefined()
     expect(ast.body[0]).toMatchObject({
       kind: "ExprStmt",
@@ -19,7 +18,7 @@ describe("Parser: Literals", () => {
   })
 
   test("string literal", () => {
-    const ast = parse(lex('"hello"'))
+    const ast = parse('"hello"')
     expect(ast.body[0]).toMatchObject({
       kind: "ExprStmt",
       expr: { kind: "String", value: "hello" },
@@ -27,7 +26,7 @@ describe("Parser: Literals", () => {
   })
 
   test("boolean literal: true", () => {
-    const ast = parse(lex("true"))
+    const ast = parse("true")
     expect(ast.body[0]).toMatchObject({
       kind: "ExprStmt",
       expr: { kind: "Bool", value: true },
@@ -35,7 +34,7 @@ describe("Parser: Literals", () => {
   })
 
   test("boolean literal: false", () => {
-    const ast = parse(lex("false"))
+    const ast = parse("false")
     expect(ast.body[0]).toMatchObject({
       kind: "ExprStmt",
       expr: { kind: "Bool", value: false },
@@ -45,7 +44,7 @@ describe("Parser: Literals", () => {
 
 describe("Parser: Binary Operations", () => {
   test("addition", () => {
-    const ast = parse(lex("3 + 2"))
+    const ast = parse("3 + 2")
     expect(ast.body[0]).toMatchObject({
       kind: "ExprStmt",
       expr: {
@@ -58,7 +57,7 @@ describe("Parser: Binary Operations", () => {
   })
 
   test("multiplication", () => {
-    const ast = parse(lex("4 * 3"))
+    const ast = parse("4 * 3")
     expect(ast.body[0]).toMatchObject({
       kind: "ExprStmt",
       expr: {
@@ -69,7 +68,7 @@ describe("Parser: Binary Operations", () => {
   })
 
   test("operator precedence: multiplication before addition", () => {
-    const ast = parse(lex("3 + 2 * 4"))
+    const ast = parse("3 + 2 * 4")
     const expr = ast.body[0].expr
     expect(expr.kind).toBe("BinaryOp")
     expect(expr.op).toBe("+")
@@ -80,7 +79,7 @@ describe("Parser: Binary Operations", () => {
 
 describe("Parser: Array Literals", () => {
   test("empty array", () => {
-    const ast = parse(lex("[]"))
+    const ast = parse("[]")
     expect(ast.body[0]).toMatchObject({
       kind: "ExprStmt",
       expr: {
@@ -91,7 +90,7 @@ describe("Parser: Array Literals", () => {
   })
 
   test("array with numbers", () => {
-    const ast = parse(lex("[1, 2, 3]"))
+    const ast = parse("[1, 2, 3]")
     expect(ast.body[0].expr).toMatchObject({
       kind: "Array",
       elements: [
@@ -105,7 +104,7 @@ describe("Parser: Array Literals", () => {
 
 describe("Parser: Object Literals", () => {
   test("empty object", () => {
-    const ast = parse(lex("{}"))
+    const ast = parse("{}")
     expect(ast.body[0]).toMatchObject({
       kind: "ExprStmt",
       expr: {
@@ -116,7 +115,7 @@ describe("Parser: Object Literals", () => {
   })
 
   test("object with properties", () => {
-    const ast = parse(lex("{a = 1, b = 2}"))
+    const ast = parse("{a = 1, b = 2}")
     const expr = ast.body[0].expr
     expect(expr.kind).toBe("Object")
     expect(expr.fields.a).toBeDefined()
@@ -126,7 +125,7 @@ describe("Parser: Object Literals", () => {
 
 describe("Parser: Function Calls", () => {
   test("function call with no args", () => {
-    const ast = parse(lex("foo()"))
+    const ast = parse("foo()")
     expect(ast.body[0]).toMatchObject({
       kind: "ExprStmt",
       expr: {
@@ -138,7 +137,7 @@ describe("Parser: Function Calls", () => {
   })
 
   test("function call with positional args", () => {
-    const ast = parse(lex("add(1, 2)"))
+    const ast = parse("add(1, 2)")
     const expr = ast.body[0].expr
     expect(expr.kind).toBe("Call")
     expect(expr.callee).toBe("add")
@@ -147,7 +146,7 @@ describe("Parser: Function Calls", () => {
   })
 
   test("function call with named args", () => {
-    const ast = parse(lex("box(width=10, height=20)"))
+    const ast = parse("box(width=10, height=20)")
     const expr = ast.body[0].expr
     expect(expr.kind).toBe("Call")
     expect(expr.args.width).toBeDefined()
@@ -157,7 +156,7 @@ describe("Parser: Function Calls", () => {
 
 describe("Parser: Pipe Expressions", () => {
   test("simple pipe", () => {
-    const ast = parse(lex("5 |> double(%)"))
+    const ast = parse("5 |> double(%)")
     expect(ast.body[0]).toMatchObject({
       kind: "ExprStmt",
       expr: {
@@ -169,7 +168,7 @@ describe("Parser: Pipe Expressions", () => {
   })
 
   test("chained pipe", () => {
-    const ast = parse(lex("5 |> double(%) |> addTen(%)"))
+    const ast = parse("5 |> double(%) |> addTen(%)")
     const expr = ast.body[0].expr
     expect(expr.kind).toBe("Pipe")
     // Right side is a Pipe containing another Call

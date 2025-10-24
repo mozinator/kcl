@@ -1,26 +1,99 @@
 /**
  * KCL Parser
  *
- * Recursive descent parser that transforms tokens into an AST.
+ * Recursive descent parser that transforms tokens into an AST with trivia.
  * Supports let-bindings, function calls with named arguments, and expressions.
+ * Preserves comments and blank lines for lossless formatting.
  */
 
-import type { Program, Stmt, Expr, TypeAnnotation, ArrayLength, NumericSuffix } from "./ast"
-import type { Tok } from "./lexer"
+import type { Program, Stmt, Expr, TypeAnnotation, ArrayLength, NumericSuffix, Trivia, TriviaItem } from "./ast"
+import type { Tok, TriviaToken } from "./lexer"
+import { lex } from "./lexer"
 import { DEFAULT_SETTINGS, extractSettings, type FileSettings } from "./settings"
 
-export function parse(tokens: Tok[]): Program {
-  let i = 0
-  const peek = () => tokens[i]
-  const eat = () => tokens[i++]
+export function parse(src: string): Program {
+  const { tokens, trivia, positions } = lex(src)
+  let tokenIdx = 0
+  let triviaIdx = 0
+
+  const peek = () => tokens[tokenIdx]
+  const eat = () => tokens[tokenIdx++]
   const expect = (k: string, v?: string) => {
     const t = eat()
     if (t.k !== k || (v && (t as any).v !== v)) {
       const got = (t as any).v !== undefined ? `${t.k} "${(t as any).v}"` : t.k
       const expected = v ? `${k} "${v}"` : k
-      throw new Error(`Expected ${expected}, got ${got} at position ${i - 1}`)
+      throw new Error(`Expected ${expected}, got ${got} at position ${tokenIdx - 1}`)
     }
     return t
+  }
+
+  /**
+   * Attach leading trivia (comments and blank lines before next token)
+   */
+  function attachLeadingTrivia(): TriviaItem[] {
+    const leading: TriviaItem[] = []
+    const targetTriviaIdx = positions[tokenIdx] !== undefined ? positions[tokenIdx] : trivia.length
+
+    // Track consecutive newlines to detect blank lines
+    let consecutiveNewlines = 0
+
+    // Consume trivia up to the next token position
+    while (triviaIdx < targetTriviaIdx && triviaIdx < trivia.length) {
+      const t = trivia[triviaIdx++]
+
+      if (t.type === 'comment') {
+        // Flush any accumulated newlines as blanks before comment
+        if (consecutiveNewlines > 1) {
+          leading.push({ type: 'blank', count: consecutiveNewlines - 1 })
+        }
+        consecutiveNewlines = 0
+
+        leading.push({ type: 'comment', text: t.content, isBlock: t.isBlock })
+      } else if (t.type === 'newline') {
+        consecutiveNewlines += t.count
+      }
+      // Skip whitespace (just formatting)
+    }
+
+    // Flush any remaining newlines as blanks
+    if (consecutiveNewlines > 1) {
+      leading.push({ type: 'blank', count: consecutiveNewlines - 1 })
+    }
+
+    return leading
+  }
+
+  /**
+   * Attach trailing trivia (inline comment on same line)
+   */
+  function attachTrailingTrivia(): TriviaItem | undefined {
+    // Look for trailing comment before any newline
+    const saved = triviaIdx
+    let foundWhitespace = false
+
+    while (triviaIdx < trivia.length) {
+      const t = trivia[triviaIdx]
+
+      if (t.type === 'whitespace') {
+        triviaIdx++
+        foundWhitespace = true
+        continue
+      }
+
+      if (t.type === 'comment' && foundWhitespace) {
+        // This is a trailing comment on the same line
+        triviaIdx++
+        return { type: 'comment', text: t.content, isBlock: t.isBlock }
+      }
+
+      // Hit newline or another token - no trailing comment
+      break
+    }
+
+    // Reset if we didn't find a trailing comment
+    triviaIdx = saved
+    return undefined
   }
 
   function parseAtom(): Expr {
@@ -237,7 +310,19 @@ export function parse(tokens: Tok[]): Program {
           break
         }
 
-        body.push(parseStmt())
+        // Attach trivia to body statements
+        const stmtLeading = attachLeadingTrivia()
+        const stmt = parseStmt()
+        const stmtTrailing = attachTrailingTrivia()
+
+        if (stmtLeading.length > 0 || stmtTrailing) {
+          stmt.trivia = {
+            leading: stmtLeading,
+            trailing: stmtTrailing
+          }
+        }
+
+        body.push(stmt)
 
         if (peek().k === "Sym" && (peek() as any).v === ";") {
           eat()
@@ -281,7 +366,7 @@ export function parse(tokens: Tok[]): Program {
           // Check if first argument is positional (not name=value)
           // Lookahead: if we see ident followed by '=', it's named
           const firstToken = peek()
-          const secondToken = tokens[i + 1]
+          const secondToken = tokens[tokenIdx + 1]
 
           if (
             (firstToken.k === "Ident" || firstToken.k === "Kw") &&
@@ -319,7 +404,7 @@ export function parse(tokens: Tok[]): Program {
             while (true) {
               // Lookahead to check if this is a named argument
               const nextToken = peek()
-              const followingToken = tokens[i + 1]
+              const followingToken = tokens[tokenIdx + 1]
 
               if (
                 nextToken.k === "Ident" &&
@@ -395,7 +480,7 @@ export function parse(tokens: Tok[]): Program {
       // Member access: obj.member
       if (t.k === "Sym" && (t as any).v === ".") {
         // Lookahead to avoid consuming '.' that's part of '..' operator
-        if (tokens[i + 1] && tokens[i + 1].k === "Op") {
+        if (tokens[tokenIdx + 1] && tokens[tokenIdx + 1].k === "Op") {
           break
         }
         eat() // consume '.'
@@ -767,7 +852,7 @@ export function parse(tokens: Tok[]): Program {
     // fn name(params) { body } OR fn(params) { body } (anonymous at statement level)
     if (peek().k === "Kw" && (peek() as any).v === "fn") {
       // Check if this is an anonymous function (fn followed by '(') or named function (fn followed by identifier)
-      const nextToken = tokens[i + 1]
+      const nextToken = tokens[tokenIdx + 1]
       if (nextToken && nextToken.k === "Sym" && (nextToken as any).v === "(") {
         // Anonymous function at statement level - parse as expression statement
         const expr = parseExpr()
@@ -852,7 +937,19 @@ export function parse(tokens: Tok[]): Program {
           break // return must be last
         }
 
-        body.push(parseStmt())
+        // Attach trivia to body statements
+        const stmtLeading = attachLeadingTrivia()
+        const stmt = parseStmt()
+        const stmtTrailing = attachTrailingTrivia()
+
+        if (stmtLeading.length > 0 || stmtTrailing) {
+          stmt.trivia = {
+            leading: stmtLeading,
+            trailing: stmtTrailing
+          }
+        }
+
+        body.push(stmt)
 
         // Optional semicolon
         if (peek().k === "Sym" && (peek() as any).v === ";") {
@@ -886,7 +983,7 @@ export function parse(tokens: Tok[]): Program {
 
     // Check for top-level assignment: name = expr (without let)
     if (peek().k === "Ident") {
-      const next = tokens[i + 1]
+      const next = tokens[tokenIdx + 1]
       if (next && next.k === "Sym" && (next as any).v === "=") {
         const name = (eat() as any).v as string
         expect("Sym", "=")
@@ -899,10 +996,30 @@ export function parse(tokens: Tok[]): Program {
     return { kind: "ExprStmt", expr: parseExpr() }
   }
 
+  // Capture file header trivia (leading comments/blanks at start)
+  const leadingTrivia = attachLeadingTrivia()
+
   const body: Stmt[] = []
 
   while (peek().k !== "EOF") {
-    body.push(parseStmt())
+    // Capture leading trivia for this statement
+    const stmtLeading = attachLeadingTrivia()
+
+    // Parse the statement
+    const stmt = parseStmt()
+
+    // Capture trailing trivia for this statement
+    const stmtTrailing = attachTrailingTrivia()
+
+    // Attach trivia to statement
+    if (stmtLeading.length > 0 || stmtTrailing) {
+      stmt.trivia = {
+        leading: stmtLeading,
+        trailing: stmtTrailing
+      }
+    }
+
+    body.push(stmt)
 
     // Optional semicolon
     if (peek().k === "Sym" && (peek() as any).v === ";") {
@@ -910,7 +1027,11 @@ export function parse(tokens: Tok[]): Program {
     }
   }
 
-  const program = { kind: "Program" as const, body }
+  const program: Program = {
+    kind: "Program" as const,
+    body,
+    leadingTrivia: leadingTrivia.length > 0 ? leadingTrivia : undefined
+  }
 
   // Apply settings (default units) to the AST
   applySettings(program)

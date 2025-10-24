@@ -16,7 +16,7 @@ import { programToSource } from "./generators"
  * Property: Lexer always produces EOF token
  */
 export const lexerProducesEOF: Property<string> = (src) => {
-  const tokens = lex(src)
+  const { tokens } = lex(src)
   expect(tokens.length).toBeGreaterThan(0)
   expect(tokens[tokens.length - 1]).toEqual({ k: "EOF" })
 }
@@ -25,37 +25,37 @@ export const lexerProducesEOF: Property<string> = (src) => {
  * Property: Lexer is deterministic
  */
 export const lexerIsDeterministic: Property<string> = (src) => {
-  const tokens1 = lex(src)
-  const tokens2 = lex(src)
-  expect(tokens2).toEqual(tokens1)
+  const result1 = lex(src)
+  const result2 = lex(src)
+  expect(result2).toEqual(result1)
 }
 
 /**
- * Property: Comments don't affect token stream (except EOF)
+ * Property: Comments are preserved as trivia (not eliminated from tokens)
  */
 export const commentsAreEliminated: Property<[string, string]> = ([src, comment]) => {
   const withoutComment = lex(src)
   const withComment = lex(`${src} // ${comment}`)
 
-  // Both should end with EOF
-  expect(withoutComment[withoutComment.length - 1]).toEqual({ k: "EOF" })
-  expect(withComment[withComment.length - 1]).toEqual({ k: "EOF" })
+  // Both should have EOF
+  expect(withoutComment.tokens[withoutComment.tokens.length - 1]).toEqual({ k: "EOF" })
+  expect(withComment.tokens[withComment.tokens.length - 1]).toEqual({ k: "EOF" })
 
-  // The non-comment tokens should be the same
-  expect(withComment.slice(0, -1)).toEqual(withoutComment.slice(0, -1))
+  // The code tokens should be the same (comments are in trivia now)
+  expect(withComment.tokens.slice(0, -1)).toEqual(withoutComment.tokens.slice(0, -1))
 }
 
 /**
  * Property: Parser is deterministic
  */
-export const parserIsDeterministic: Property<Tok[]> = (tokens) => {
+export const parserIsDeterministic: Property<string> = (src) => {
   try {
-    const ast1 = parse(tokens)
-    const ast2 = parse(tokens)
+    const ast1 = parse(src)
+    const ast2 = parse(src)
     expect(ast2).toEqual(ast1)
   } catch (e) {
     // If it throws, it should throw consistently
-    expect(() => parse(tokens)).toThrow()
+    expect(() => parse(src)).toThrow()
   }
 }
 
@@ -64,10 +64,9 @@ export const parserIsDeterministic: Property<Tok[]> = (tokens) => {
  */
 export const validProgramParses: Property<Program> = (program) => {
   const src = programToSource(program)
-  const tokens = lex(src)
 
   // Should not throw
-  const parsed = parse(tokens)
+  const parsed = parse(src)
   expect(parsed.kind).toBe("Program")
   expect(parsed.body.length).toBeGreaterThan(0)
 }
@@ -77,8 +76,7 @@ export const validProgramParses: Property<Program> = (program) => {
  */
 export const roundTripPreservesStructure: Property<Program> = (program) => {
   const src = programToSource(program)
-  const tokens = lex(src)
-  const parsed = parse(tokens)
+  const parsed = parse(src)
 
   // Should have same number of statements
   expect(parsed.body.length).toBe(program.body.length)

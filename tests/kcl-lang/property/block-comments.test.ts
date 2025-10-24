@@ -19,8 +19,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `/* ${comment} */ let ${varName} = ${value}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Let")
@@ -48,8 +47,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `let ${varName} = ${value} /* ${comment} */`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Let")
@@ -77,8 +75,7 @@ describe("Property-Based Tests: Block Comments", () => {
         `
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(2)
           expect(ast.body[0].kind).toBe("Let")
@@ -106,8 +103,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `/*\n${comment}\n*/ let x = ${value}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Let")
@@ -131,8 +127,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `/* ${asterisks} */ let x = ${value}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Let")
@@ -158,8 +153,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `let result = ${a} /* op */ ${op} /* val */ ${b}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Let")
@@ -196,8 +190,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `let arr = [${elements.join(", ")}]`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Let")
@@ -226,8 +219,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `${comments} let x = ${value}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Let")
@@ -258,8 +250,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = stmts.join("\n")
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(numStmts)
           for (const stmt of ast.body) {
@@ -289,8 +280,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `/* ${chars} */ let x = ${value}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Let")
@@ -314,8 +304,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `/* comment with ${slashes} inside */ let x = ${value}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Let")
@@ -337,8 +326,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `/**/ let x = ${value}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Let")
@@ -366,8 +354,7 @@ describe("Property-Based Tests: Block Comments", () => {
           : `// line\n/* block */ let x = ${value}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Let")
@@ -389,8 +376,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `// This is not /* a block comment\nlet x = ${value}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Let")
@@ -425,8 +411,7 @@ describe("Property-Based Tests: Block Comments", () => {
         `
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("FnDef")
@@ -463,8 +448,7 @@ describe("Property-Based Tests: Block Comments", () => {
         `
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(2)
           expect(ast.body[0].kind).toBe("Let")
@@ -490,8 +474,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `/* ${comment} */`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(0)
           successes++
@@ -514,8 +497,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `/*${newlines}comment${newlines}*/ let x = ${value}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           expect(ast.body.length).toBe(1)
           expect(ast.body[0].kind).toBe("Let")
@@ -538,8 +520,7 @@ describe("Property-Based Tests: Block Comments", () => {
         const src = `let x = ${value} /* ${commentText}`
 
         try {
-          const tokens = lex(src)
-          const ast = parse(tokens)
+          const ast = parse(src)
 
           // Unterminated comment consumes to EOF, but let statement should still parse
           expect(ast.body.length).toBe(1)

@@ -3,9 +3,37 @@
  *
  * Abstract Syntax Tree types for the KCL CAD language.
  * Immutable let-bindings map directly to SSA form.
+ *
+ * Trivia (comments, whitespace, blank lines) can be attached to nodes
+ * for lossless formatting and source code preservation.
  */
 
 export type Ident = string
+
+// ============================================================================
+// Trivia Types (for CST - Concrete Syntax Tree support)
+// ============================================================================
+
+/**
+ * A single trivia item (comment or blank line sequence)
+ */
+export type TriviaItem =
+  | { type: 'comment'; text: string; isBlock: boolean }
+  | { type: 'blank'; count: number }
+
+/**
+ * Trivia attached to an AST node
+ * - leading: comments and blank lines before the node
+ * - trailing: inline comment after the node (same line)
+ */
+export type Trivia = {
+  leading: TriviaItem[]
+  trailing?: TriviaItem
+}
+
+// ============================================================================
+// Core AST Types
+// ============================================================================
 
 export type NumberLit = { kind: "Number"; value: number; unit?: NumericSuffix }
 export type BoolLit = { kind: "Bool"; value: boolean }
@@ -74,14 +102,14 @@ export type ImportItem = {
 }
 
 export type Stmt =
-  | { kind: "Let"; name: Ident; expr: Expr }
-  | { kind: "Assign"; name: Ident; expr: Expr } // Top-level assignment (no let)
-  | { kind: "FnDef"; name: Ident; params: Param[]; body: Stmt[]; returnExpr?: Expr; returnType?: TypeAnnotation }
-  | { kind: "Return"; expr?: Expr }
-  | { kind: "ExprStmt"; expr: Expr }
-  | { kind: "Annotation"; name: Ident; args: Record<string, Expr> } // @name(key=value, ...)
-  | { kind: "Import"; path: string; items?: ImportItem[]; alias?: Ident } // import x from "path" or import "path" as x
-  | { kind: "Export"; stmt: Stmt } // export fn/let/assign
-  | { kind: "ExportImport"; item: ImportItem; path: string } // export import x from "path"
+  | { kind: "Let"; name: Ident; expr: Expr; trivia?: Trivia }
+  | { kind: "Assign"; name: Ident; expr: Expr; trivia?: Trivia } // Top-level assignment (no let)
+  | { kind: "FnDef"; name: Ident; params: Param[]; body: Stmt[]; returnExpr?: Expr; returnType?: TypeAnnotation; trivia?: Trivia }
+  | { kind: "Return"; expr?: Expr; trivia?: Trivia }
+  | { kind: "ExprStmt"; expr: Expr; trivia?: Trivia }
+  | { kind: "Annotation"; name: Ident; args: Record<string, Expr>; trivia?: Trivia } // @name(key=value, ...)
+  | { kind: "Import"; path: string; items?: ImportItem[]; alias?: Ident; trivia?: Trivia } // import x from "path" or import "path" as x
+  | { kind: "Export"; stmt: Stmt; trivia?: Trivia } // export fn/let/assign
+  | { kind: "ExportImport"; item: ImportItem; path: string; trivia?: Trivia } // export import x from "path"
 
-export type Program = { kind: "Program"; body: Stmt[] }
+export type Program = { kind: "Program"; body: Stmt[]; leadingTrivia?: TriviaItem[] }

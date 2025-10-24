@@ -7,7 +7,6 @@
 import { describe, test, expect } from "bun:test"
 import { DocumentManager } from "../../../src/kcl-lsp/document-manager"
 import { formatDocument } from "../../../src/kcl-lsp/features/formatting"
-import { formatDocumentWithComments } from "../../../src/kcl-lsp/features/formatting-with-comments"
 
 describe("Formatting: Blank Lines", () => {
   test("adds blank line after function definition", () => {
@@ -247,12 +246,12 @@ describe("Formatting: Comment Preservation", () => {
     }
   })
 
-  test("formatDocumentWithComments still works for backwards compatibility", () => {
+  test("formatDocument still works for backwards compatibility", () => {
     const manager = new DocumentManager()
     const code = "// comment\nx = 10"
     const result = manager.open("file:///test.kcl", code, 1)
 
-    const formatted = formatDocumentWithComments(result, code)
+    const formatted = formatDocument(result, code)
 
     if (formatted.length > 0) {
       const output = formatted[0].newText
@@ -277,7 +276,7 @@ describe("Formatting: Edge Cases", () => {
     const code = "// just a comment"
     const result = manager.open("file:///test.kcl", code, 1)
 
-    const formatted = formatDocumentWithComments(result, code)
+    const formatted = formatDocument(result, code)
 
     // Should preserve comment
     expect(formatted).toBeDefined()
