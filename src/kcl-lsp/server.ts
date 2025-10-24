@@ -228,6 +228,12 @@ class KclLanguageServer {
       return []
     }
     const originalSource = this.documents.getText(params.textDocument.uri)
+
+    // Debug: Log if originalSource is missing
+    if (!originalSource) {
+      console.error(`[KCL LSP] Warning: originalSource is undefined for ${params.textDocument.uri}`)
+    }
+
     return formatDocument(parseResult, originalSource)
   }
 
