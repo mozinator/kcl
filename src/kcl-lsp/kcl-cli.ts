@@ -59,15 +59,29 @@ type Options = {
 /**
  * Parse command-line arguments
  */
-function parseArgs(): Options {
+function parseArgs(): Options | { error: string } {
   const args = Bun.argv.slice(2)
 
   if (args.length === 0) {
     return { command: "help", files: [], format: false, check: false, json: false, write: false }
   }
 
-  const command = args[0] as Command
+  const firstArg = args[0]
+
+  // Handle help flags
+  if (firstArg === "-h" || firstArg === "--help" || firstArg === "help") {
+    return { command: "help", files: [], format: false, check: false, json: false, write: false }
+  }
+
+  // Validate command
+  const validCommands = ["fmt", "check", "help"]
+  if (!validCommands.includes(firstArg)) {
+    return { error: `unknown command '${firstArg}'` }
+  }
+
+  const command = firstArg as Command
   const files: string[] = []
+  const unknownOptions: string[] = []
   let format = false
   let check = false
   let json = false
@@ -77,17 +91,37 @@ function parseArgs(): Options {
     const arg = args[i]
 
     if (arg === "--format" || arg === "-f") {
+      if (command !== "check") {
+        return { error: `--format flag is only valid with 'check' command` }
+      }
       format = true
     } else if (arg === "--check" || arg === "-c") {
+      if (command !== "fmt") {
+        return { error: `--check flag is only valid with 'fmt' command` }
+      }
       check = true
       write = false // Don't write in check mode
     } else if (arg === "--json") {
+      if (command !== "check") {
+        return { error: `--json flag is only valid with 'check' command` }
+      }
       json = true
     } else if (arg === "--no-write") {
+      if (command !== "fmt") {
+        return { error: `--no-write flag is only valid with 'fmt' command` }
+      }
       write = false
-    } else if (!arg.startsWith("-")) {
+    } else if (arg === "-h" || arg === "--help") {
+      return { command: "help", files: [], format: false, check: false, json: false, write: false }
+    } else if (arg.startsWith("-")) {
+      unknownOptions.push(arg)
+    } else {
       files.push(arg)
     }
+  }
+
+  if (unknownOptions.length > 0) {
+    return { error: `unknown option(s): ${unknownOptions.join(", ")}` }
   }
 
   return { command, files, format, check, json, write }
@@ -401,7 +435,17 @@ async function runCheck(options: Options): Promise<number> {
  * Main CLI entry point
  */
 async function main() {
-  const options = parseArgs()
+  const result = parseArgs()
+
+  // Handle parsing errors
+  if ('error' in result) {
+    console.error(`${COLORS.red}error:${RESET} ${result.error}`)
+    console.error(`${DIM}hint:${RESET} run ${COLORS.cyan}kcl help${RESET} for usage`)
+    console.error("")
+    return 1
+  }
+
+  const options = result
 
   switch (options.command) {
     case "help":

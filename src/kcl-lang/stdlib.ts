@@ -115,6 +115,9 @@ export const OPS: Record<string, OpSig> = {
       { name: "showDirectionArrows", ty: "Scalar", optional: true },
       { name: "arrowSize", ty: "Scalar", optional: true },
       { name: "arrowSpacing", ty: "Scalar", optional: true },
+      { name: "showGrid", ty: "Scalar", optional: true },
+      { name: "gridColumns", ty: "Scalar", optional: true },
+      { name: "gridRows", ty: "Scalar", optional: true },
     ],
   },
   renderShaded: {
@@ -185,7 +188,7 @@ export const OPS: Record<string, OpSig> = {
     params: [{ name: "sketch", ty: "Sketch", optional: true }],
   },
   close: {
-    ret: "Shape",
+    ret: "Sketch",
     params: [{ name: "sketch", ty: "Sketch" }],
   },
 
@@ -510,6 +513,16 @@ export const OPS: Record<string, OpSig> = {
     params: [
       { name: "base", ty: "Shape" },
       { name: "tool", ty: "Shape" },
+    ],
+  },
+
+  // cut - Boolean subtraction with simpler parameter names (alias for subtract)
+  // Cuts shape b from shape a (a - b)
+  cut: {
+    ret: "Shape",
+    params: [
+      { name: "a", ty: "Shape" },
+      { name: "b", ty: "Shape" },
     ],
   },
 
